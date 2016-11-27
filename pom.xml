@@ -52,6 +52,11 @@
             <version>0.1.0-20161127084016</version>
         </dependency>
         <dependency>
+            <groupId>com.atomist</groupId>
+            <artifactId>typescript-rug-compiler</artifactId>
+            <version>0.1.1-20161127094058</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot</artifactId>
             <version>1.4.2.RELEASE</version>
