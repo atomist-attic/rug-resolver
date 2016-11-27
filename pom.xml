@@ -49,12 +49,12 @@
         <dependency>
             <groupId>com.atomist</groupId>
             <artifactId>rug-compiler</artifactId>
-            <version>0.1.0-20161127084016</version>
+            <version>0.1.0-20161127104422</version>
         </dependency>
         <dependency>
             <groupId>com.atomist</groupId>
             <artifactId>typescript-rug-compiler</artifactId>
-            <version>0.1.1-20161127094058</version>
+            <version>0.1.1-20161127104712</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -320,7 +320,7 @@
     </build>
     <repositories>
         <repository>
-            <id>atomist-release</id>
+            <id>public-atomist-release</id>
             <name>Atomist Release</name>
             <url>https://atomist.jfrog.io/atomist/libs-release</url>
             <snapshots>
@@ -328,7 +328,7 @@
             </snapshots>
         </repository>
         <repository>
-            <id>atomist-snapshots</id>
+            <id>public-atomist-snapshots</id>
             <name>Atomist Snapshots</name>
             <url>https://atomist.jfrog.io/atomist/libs-snapshot</url>
             <snapshots>
@@ -338,12 +338,12 @@
     </repositories>
     <distributionManagement>
         <repository>
-            <id>atomist-release</id>
+            <id>public-atomist-release</id>
             <name>Atomist Release</name>
             <url>https://atomist.jfrog.io/atomist/libs-release-local</url>
         </repository>
         <snapshotRepository>
-            <id>atomist-snapshots</id>
+            <id>public-atomist-snapshots</id>
             <name>Atomist Snapshots</name>
             <url>https://atomist.jfrog.io/atomist/libs-snapshot-local</url>
         </snapshotRepository>
