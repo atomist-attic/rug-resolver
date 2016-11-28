@@ -1,0 +1,8 @@
+group: atomist-typescript
+artifact: sample-editors
+version: 0.1.0
+
+requires: "1.4.2-SNAPSHOT"
+
+dependencies:
+  - "atomist-typescript:user-model:0.2.0"

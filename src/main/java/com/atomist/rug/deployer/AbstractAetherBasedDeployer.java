@@ -2,14 +2,17 @@ package com.atomist.rug.deployer;
 
 import com.atomist.project.ProvenanceInfo;
 import com.atomist.rug.manifest.Manifest;
+import com.atomist.rug.manifest.ManifestFactory;
 import com.atomist.rug.manifest.ManifestPomWriter;
-import com.atomist.rug.manifest.ManifestReader;
 import com.atomist.rug.manifest.ManifestWriter;
 import com.atomist.rug.resolver.ArtifactDescriptor;
 import com.atomist.rug.resolver.maven.MavenConfiguration;
 import com.atomist.source.*;
 import com.atomist.source.file.StreamingZipFileOutput;
 import com.atomist.source.file.ZipFileArtifactSourceWriter;
+
+import scala.Option;
+
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
 import org.eclipse.aether.DefaultRepositorySystemSession;
 import org.eclipse.aether.RepositorySystem;
@@ -41,7 +44,7 @@ public abstract class AbstractAetherBasedDeployer implements Deployer {
                 + artifact.extension().toString().toLowerCase();
         File archive = new File(root, ".atomist/target/" + zipFileName);
 
-        Manifest manifest = new ManifestReader().read(source);
+        Manifest manifest = ManifestFactory.read(source);
         manifest.setVersion(artifact.version());
         source = writePomAndManifestToArtifactSource(artifact, source, manifest);
         source = writeProvenanceInfoToArtifactSource(getProvenanceInfo(), source);
@@ -94,12 +97,12 @@ public abstract class AbstractAetherBasedDeployer implements Deployer {
 
     private ArtifactSource writeProvenanceInfoToArtifactSource(ProvenanceInfo provenanceInfo,
             ArtifactSource source) {
-        if (provenanceInfo == null) {
+        Option<FileArtifact> manifestArtifact = source.findFile(".atomist/manifest.yml");
+        if (provenanceInfo == null || manifestArtifact.isEmpty()) {
             return source;
         }
 
-        FileArtifact manifestArtifact = source.findFile(".atomist/manifest.yml").get();
-        StringBuilder sb = new StringBuilder(manifestArtifact.content()).append("\n---\n");
+        StringBuilder sb = new StringBuilder(manifestArtifact.get().content()).append("\n---\n");
         sb.append("repo: \"").append(provenanceInfo.repo().get()).append("\"\n");
         sb.append("branch: \"").append(provenanceInfo.branch().get()).append("\"\n");
         sb.append("sha: \"").append(provenanceInfo.sha().get()).append("\"\n");

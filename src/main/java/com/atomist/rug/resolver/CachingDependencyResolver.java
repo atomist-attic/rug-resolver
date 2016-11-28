@@ -69,7 +69,10 @@ public class CachingDependencyResolver implements DependencyResolver {
         if (artifact instanceof LocalArtifactDescriptor) {
             File manifest = new File(new File(artifact.uri()),
                     DefaultAtomistConfig$.MODULE$.atomistRoot() + "/" + Manifest.FILE_NAME);
-            return manifest.lastModified() > file.lastModified();
+            File packageJson = new File(new File(artifact.uri()),
+                    DefaultAtomistConfig$.MODULE$.atomistRoot() + "/package.json");
+            return manifest.lastModified() > file.lastModified()
+                    || packageJson.lastModified() > file.lastModified();
         }
         return System.currentTimeMillis() - file.lastModified() > TIMEOUT;
     }
