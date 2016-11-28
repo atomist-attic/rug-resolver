@@ -121,11 +121,6 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
         }
 
         @Override
-        public Seq<ParameterValue> computedParameters(ParameterValues parameterValues) {
-            return delegate.computedParameters(parameterValues);
-        }
-
-        @Override
         public Seq<Tag> tags() {
             return delegate.tags();
         }

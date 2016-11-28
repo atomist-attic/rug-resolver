@@ -44,12 +44,12 @@
         <dependency>
             <groupId>com.atomist</groupId>
             <artifactId>rug</artifactId>
-            <version>0.1.0-20161124091937</version>
+            <version>0.1.0-20161127220159</version>
         </dependency>
         <dependency>
             <groupId>com.atomist</groupId>
             <artifactId>rug-compiler</artifactId>
-            <version>0.1.0-20161127104422</version>
+            <version>0.1.0-20161128001624</version>
         </dependency>
         <dependency>
             <groupId>com.atomist</groupId>

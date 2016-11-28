@@ -53,7 +53,7 @@ public class DefaultOperationsLoader implements OperationsLoader {
     public final Operations load(ArtifactDescriptor artifact) throws OperationsLoaderException {
 
         String version = null;
-        List<ArtifactDescriptor> dependencies = null;
+        List<ArtifactDescriptor> dependencies;
 
         try {
             version = resolver.resolveVersion(artifact);
