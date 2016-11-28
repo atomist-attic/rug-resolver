@@ -16,7 +16,7 @@ public class ManifestArtifactDescriptorCreator {
                 manifest.artifact(), manifest.version(), Extension.ZIP, Scope.RUNTIME, uri);
 
         // add rug-lib dependency
-        artifact.addDependency(new DefaultArtifactDescriptor("com.atomist", "rug-lib",
+        artifact.addDependency(new DefaultArtifactDescriptor("com.atomist", "rug",
                 manifest.requires(), Extension.JAR, Scope.COMPILE, null));
 
         // add rug archive dependencies

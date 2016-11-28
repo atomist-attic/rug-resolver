@@ -85,7 +85,7 @@ public class ManifestPomWriter {
         // add rug-lib dependency
         Dependency rugLib = new Dependency();
         rugLib.setGroupId("com.atomist");
-        rugLib.setArtifactId("rug-lib");
+        rugLib.setArtifactId("rug");
         rugLib.setVersion(manifest.requires());
         model.addDependency(rugLib);
     }
