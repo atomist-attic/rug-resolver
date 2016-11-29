@@ -5,9 +5,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
-
-import org.yaml.snakeyaml.Yaml;
 
 import com.atomist.model.project.ResourceSpecifier;
 import com.atomist.model.project.SimpleResourceSpecifier;
@@ -20,7 +19,7 @@ import com.atomist.project.ProjectOperation;
 import com.atomist.project.ProjectOperationArguments;
 import com.atomist.project.ProjectOperationInfo;
 import com.atomist.project.ProvenanceInfo;
-import com.atomist.project.archive.DefaultAtomistConfig$;
+import com.atomist.project.ProvenanceInfoArtifactSourceReader;
 import com.atomist.project.archive.Operations;
 import com.atomist.project.common.InvalidParametersException;
 import com.atomist.project.common.MissingParametersException;
@@ -32,7 +31,6 @@ import com.atomist.project.generate.ProjectGenerator;
 import com.atomist.project.review.ProjectReviewer;
 import com.atomist.project.review.ReviewResult;
 import com.atomist.rug.kind.service.ServiceSource;
-import com.atomist.rug.manifest.Manifest;
 import com.atomist.rug.resolver.ArtifactDescriptor;
 import com.atomist.rug.resolver.DependencyResolver;
 import com.atomist.source.ArtifactSource;
@@ -98,25 +96,14 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
             init(artifactSource);
         }
 
-        @SuppressWarnings("unchecked")
         private void init(ArtifactSource artifactSource) {
-            Option<FileArtifact> file = artifactSource
-                    .findFile(DefaultAtomistConfig$.MODULE$.atomistRoot() + "/" + Manifest.FILE_NAME);
-            if (file.isDefined()) {
-                Yaml yaml = new Yaml();
-                Iterable<?> iterator = yaml.loadAll(file.get().content());
-                iterator.forEach(d -> {
-                    Map<String, Object> document = (Map<String, Object>) d;
-                    if (document.containsKey("repo")) {
-                        repo = (String) document.get("repo");
-                    }
-                    if (document.containsKey("branch")) {
-                        branch = (String) document.get("branch");
-                    }
-                    if (document.containsKey("sha")) {
-                        sha = (String) document.get("sha");
-                    }
-                });
+            Optional<ProvenanceInfo> provenanceInfoOptional = new ProvenanceInfoArtifactSourceReader()
+                    .read(artifactSource);
+            if (provenanceInfoOptional.isPresent()) {
+                ProvenanceInfo provenanceInfo = provenanceInfoOptional.get();
+                repo = provenanceInfo.repo().get();
+                branch = provenanceInfo.branch().get();
+                sha = provenanceInfo.sha().get();
             }
         }
 

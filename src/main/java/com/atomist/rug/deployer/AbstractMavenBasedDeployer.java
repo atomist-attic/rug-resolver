@@ -1,17 +1,10 @@
 package com.atomist.rug.deployer;
 
-import com.atomist.project.ProvenanceInfo;
-import com.atomist.rug.manifest.Manifest;
-import com.atomist.rug.manifest.ManifestFactory;
-import com.atomist.rug.manifest.ManifestPomWriter;
-import com.atomist.rug.manifest.ManifestWriter;
-import com.atomist.rug.resolver.ArtifactDescriptor;
-import com.atomist.rug.resolver.maven.MavenConfiguration;
-import com.atomist.source.*;
-import com.atomist.source.file.StreamingZipFileOutput;
-import com.atomist.source.file.ZipFileArtifactSourceWriter;
-
-import scala.Option;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
 
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
 import org.eclipse.aether.DefaultRepositorySystemSession;
@@ -26,13 +19,27 @@ import org.eclipse.aether.util.artifact.SubArtifact;
 import org.eclipse.aether.util.repository.ConservativeProxySelector;
 import org.eclipse.aether.util.repository.JreProxySelector;
 
-import java.io.*;
+import com.atomist.project.ProvenanceInfo;
+import com.atomist.project.ProvenanceInfoArtifactSourceWriter;
+import com.atomist.rug.manifest.Manifest;
+import com.atomist.rug.manifest.ManifestFactory;
+import com.atomist.rug.manifest.ManifestPomWriter;
+import com.atomist.rug.manifest.ManifestWriter;
+import com.atomist.rug.resolver.ArtifactDescriptor;
+import com.atomist.rug.resolver.maven.MavenConfiguration;
+import com.atomist.source.ArtifactSource;
+import com.atomist.source.FileArtifact;
+import com.atomist.source.FileEditor;
+import com.atomist.source.SimpleSourceUpdateInfo;
+import com.atomist.source.StringFileArtifact;
+import com.atomist.source.file.StreamingZipFileOutput;
+import com.atomist.source.file.ZipFileArtifactSourceWriter;
 
-public abstract class AbstractAetherBasedDeployer implements Deployer {
+public abstract class AbstractMavenBasedDeployer implements Deployer {
 
     private String localRepository = null;
 
-    public AbstractAetherBasedDeployer(String localRespository) {
+    public AbstractMavenBasedDeployer(String localRespository) {
         this.localRepository = localRespository;
     }
 
@@ -97,30 +104,9 @@ public abstract class AbstractAetherBasedDeployer implements Deployer {
 
     private ArtifactSource writeProvenanceInfoToArtifactSource(ProvenanceInfo provenanceInfo,
             ArtifactSource source) {
-        Option<FileArtifact> manifestArtifact = source.findFile(".atomist/manifest.yml");
-        if (provenanceInfo == null || manifestArtifact.isEmpty()) {
-            return source;
-        }
-
-        StringBuilder sb = new StringBuilder(manifestArtifact.get().content()).append("\n---\n");
-        sb.append("repo: \"").append(provenanceInfo.repo().get()).append("\"\n");
-        sb.append("branch: \"").append(provenanceInfo.branch().get()).append("\"\n");
-        sb.append("sha: \"").append(provenanceInfo.sha().get()).append("\"\n");
-        FileArtifact newManifest = new StringFileArtifact("manifest.yml", ".atomist",
-                sb.toString());
-
-        return source.edit(new FileEditor() {
-            @Override
-            public boolean canAffect(FileArtifact f) {
-                return f.path().equals(newManifest.path());
-            }
-
-            @Override
-            public FileArtifact edit(FileArtifact f) {
-                return newManifest;
-            }
-        });
+        return new ProvenanceInfoArtifactSourceWriter().write(provenanceInfo, source);
     }
+        
 
     private File writePom(Manifest manifest, ArtifactDescriptor artifact, File projectRoot) {
         String manifestContents = new ManifestPomWriter().write(manifest, artifact);

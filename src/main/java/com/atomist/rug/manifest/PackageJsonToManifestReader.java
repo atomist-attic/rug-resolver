@@ -2,7 +2,10 @@ package com.atomist.rug.manifest;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 
+import com.atomist.project.ProvenanceInfo;
+import com.atomist.project.ProvenanceInfoArtifactSourceReader;
 import com.atomist.source.ArtifactSource;
 import com.atomist.source.FileArtifact;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,6 +49,14 @@ class PackageJsonToManifestReader {
                         }
                     });
 
+            Optional<ProvenanceInfo> provenanceInfoOptional = new ProvenanceInfoArtifactSourceReader().read(source);
+            if (provenanceInfoOptional.isPresent()) {
+                ProvenanceInfo provenanceInfo = provenanceInfoOptional.get();
+                manifest.setRepo(provenanceInfo.repo().get());
+                manifest.setBranch(provenanceInfo.branch().get());
+                manifest.setSha(provenanceInfo.sha().get());
+            }
+            
             return ManifestValidator.validate(manifest);
         }
         throw new ManifestException("package.json could not be found in .atomist");
