@@ -7,7 +7,6 @@ import java.util.Optional;
 
 import org.yaml.snakeyaml.Yaml;
 
-import com.atomist.project.archive.DefaultAtomistConfig$;
 import com.atomist.rug.manifest.Manifest;
 import com.atomist.source.ArtifactSource;
 import com.atomist.source.FileArtifact;
@@ -24,9 +23,9 @@ public class ProvenanceInfoArtifactSourceReader {
         String sha = null;
 
         Option<FileArtifact> manifest = source
-                .findFile(DefaultAtomistConfig$.MODULE$.atomistRoot() + "/" + Manifest.FILE_NAME);
+                .findFile(".atomist/" + Manifest.FILE_NAME);
         Option<FileArtifact> packageJson = source
-                .findFile(DefaultAtomistConfig$.MODULE$.atomistRoot() + "/package.json");
+                .findFile(".atomist/package.json");
 
         if (manifest.isDefined()) {
             Yaml yaml = new Yaml();
