@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import com.atomist.project.archive.DefaultAtomistConfig$;
 import com.atomist.rug.manifest.Manifest;
 import com.atomist.rug.resolver.ArtifactDescriptor.Scope;
 
@@ -68,9 +67,9 @@ public class CachingDependencyResolver implements DependencyResolver {
     protected boolean isOutdated(ArtifactDescriptor artifact, File file) {
         if (artifact instanceof LocalArtifactDescriptor) {
             File manifest = new File(new File(artifact.uri()),
-                    DefaultAtomistConfig$.MODULE$.atomistRoot() + "/" + Manifest.FILE_NAME);
+                    Manifest.ATOMIST_ROOT + "/" + Manifest.FILE_NAME);
             File packageJson = new File(new File(artifact.uri()),
-                    DefaultAtomistConfig$.MODULE$.atomistRoot() + "/package.json");
+                    Manifest.ATOMIST_ROOT + "/package.json");
             return manifest.lastModified() > file.lastModified()
                     || packageJson.lastModified() > file.lastModified();
         }

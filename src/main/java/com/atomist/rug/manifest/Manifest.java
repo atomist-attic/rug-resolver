@@ -11,6 +11,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class Manifest extends Gav {
     
     public static final String FILE_NAME = "manifest.yml"; 
+    
+    public static final String ATOMIST_ROOT = ".atomist";
 
     private String requires;
 
