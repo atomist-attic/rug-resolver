@@ -24,8 +24,9 @@ public class RepositoryDetailsProvider {
             ObjectId lastCommit = repository.resolve(repository.getFullBranch());
             String sha = lastCommit.abbreviate(7).name();
             String url = repository.getConfig().getString("remote", "origin", "url");
-            if (url != null && url.startsWith("git@github.com:")) {
-                url = url.substring("git@github.com:".length());
+            if (url != null) {
+                url = url.replace("git@github.com\\:", "");
+                url = url.replace("https://github.com/", "");
             }
             String branch = repository.getBranch();
             String date = null;
