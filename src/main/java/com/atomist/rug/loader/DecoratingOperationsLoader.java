@@ -33,6 +33,7 @@ import com.atomist.project.review.ReviewResult;
 import com.atomist.rug.kind.service.ServiceSource;
 import com.atomist.rug.resolver.ArtifactDescriptor;
 import com.atomist.rug.resolver.DependencyResolver;
+import com.atomist.source.Artifact;
 import com.atomist.source.ArtifactSource;
 import com.atomist.source.DirectoryArtifact;
 import com.atomist.source.FileArtifact;
@@ -297,6 +298,13 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
 
                 @Override
                 public Object apply(DirectoryArtifact dir) {
+                    // This is required to remove our maven packaging information
+                    if (dir.name().equals("META-INF")) {
+                        Optional<Artifact> nonMavenArtifact = JavaConversions
+                                .asJavaCollection(dir.artifacts()).stream()
+                                .filter(a -> !a.path().startsWith("META-INF/maven")).findAny();
+                        return nonMavenArtifact.isPresent();
+                    }
                     return (!dir.path().equals("META-INF/maven"));
                 }
             }, new AbstractFunction1<FileArtifact, Object>() {
