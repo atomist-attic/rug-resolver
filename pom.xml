@@ -51,7 +51,7 @@
 		<dependency>
 			<groupId>com.atomist</groupId>
 			<artifactId>rug</artifactId>
-			<version>0.1.0-20161127220159</version>
+			<version>0.3.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
