@@ -35,9 +35,9 @@ import com.atomist.source.Artifact;
 import com.atomist.source.ArtifactSource;
 import com.atomist.source.DirectoryArtifact;
 import com.atomist.source.FileArtifact;
-
 import com.atomist.tree.content.project.ResourceSpecifier;
 import com.atomist.tree.content.project.SimpleResourceSpecifier;
+
 import scala.Option;
 import scala.collection.JavaConversions;
 import scala.collection.Seq;
