@@ -1,16 +1,5 @@
 package com.atomist.rug.loader;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.util.StringUtils;
-
 import com.atomist.project.ProjectOperation;
 import com.atomist.project.archive.DefaultAtomistConfig$;
 import com.atomist.project.archive.Operations;
@@ -18,21 +7,26 @@ import com.atomist.project.archive.ProjectOperationArchiveReader;
 import com.atomist.rug.EmptyRugFunctionRegistry;
 import com.atomist.rug.RugRuntimeException;
 import com.atomist.rug.kind.DefaultTypeRegistry$;
-import com.atomist.rug.resolver.ArtifactDescriptor;
+import com.atomist.rug.resolver.*;
 import com.atomist.rug.resolver.ArtifactDescriptor.Extension;
-import com.atomist.rug.resolver.ArtifactDescriptorFactory;
-import com.atomist.rug.resolver.DefaultArtifactDescriptor;
-import com.atomist.rug.resolver.DependencyResolver;
-import com.atomist.rug.resolver.DependencyResolverException;
-import com.atomist.rug.runtime.DefaultEvaluator;
+import com.atomist.rug.runtime.rugdsl.DefaultEvaluator;
 import com.atomist.source.ArtifactSource;
 import com.atomist.source.file.FileSystemArtifactSource;
 import com.atomist.source.file.SimpleFileSystemArtifactSourceIdentifier;
 import com.atomist.source.file.ZipFileArtifactSourceReader;
 import com.atomist.source.file.ZipFileInput;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 import scala.Option;
 import scala.collection.JavaConversions;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class DefaultOperationsLoader implements OperationsLoader {
 

@@ -8,8 +8,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.atomist.model.project.ResourceSpecifier;
-import com.atomist.model.project.SimpleResourceSpecifier;
 import com.atomist.param.Parameter;
 import com.atomist.param.ParameterValue;
 import com.atomist.param.ParameterValues;
@@ -38,6 +36,8 @@ import com.atomist.source.ArtifactSource;
 import com.atomist.source.DirectoryArtifact;
 import com.atomist.source.FileArtifact;
 
+import com.atomist.tree.content.project.ResourceSpecifier;
+import com.atomist.tree.content.project.SimpleResourceSpecifier;
 import scala.Option;
 import scala.collection.JavaConversions;
 import scala.collection.Seq;
@@ -52,7 +52,6 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
     @Override
     protected Operations postProcess(ArtifactDescriptor artifact, Operations operations,
             ArtifactSource source) {
-
         List<ParameterValue> additionalPvs = Collections.emptyList();
 
         ResourceSpecifier gav = new SimpleResourceSpecifier(artifact.group(), artifact.artifact(),
@@ -295,7 +294,6 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
                 throws InvalidParametersException {
             ArtifactSource source = getDelegate().generate(decorateProjectOperationArguments(tcc));
             return source.filter(new AbstractFunction1<DirectoryArtifact, Object>() {
-
                 @Override
                 public Object apply(DirectoryArtifact dir) {
                     // This is required to remove our maven packaging information
@@ -308,7 +306,6 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
                     return (!dir.path().equals("META-INF/maven"));
                 }
             }, new AbstractFunction1<FileArtifact, Object>() {
-
                 @Override
                 public Object apply(FileArtifact arg0) {
                     return true;
