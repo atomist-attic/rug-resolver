@@ -17,10 +17,22 @@ public class LogDependencyVisitor implements DependencyVisitor {
     private Log out;
     private DependencyVisitor visitor;
 
+    protected String treeNode = "├─ ";
+    protected String lastTreeNode = "└─ ";
+    protected String treeConnector = "|  ";
+
     private List<ChildInfo> childInfos = new ArrayList<ChildInfo>();
 
     public LogDependencyVisitor(Log out) {
         this.out = out;
+    }
+    
+    public LogDependencyVisitor(Log out, String treeNode, String lastTreeNode,
+            String treeConnector) {
+        this.out = out;
+        this.lastTreeNode = lastTreeNode;
+        this.treeConnector = treeConnector;
+        this.treeNode = treeNode;
     }
 
     public LogDependencyVisitor(Log out, DependencyVisitor visitor) {
@@ -92,7 +104,7 @@ public class LogDependencyVisitor implements DependencyVisitor {
         return (visitor != null ? visitor.visitLeave(node) : true);
     }
 
-    private static class ChildInfo {
+    private class ChildInfo {
 
         final int count;
 
@@ -105,15 +117,16 @@ public class LogDependencyVisitor implements DependencyVisitor {
         public String formatIndentation(boolean end) {
             boolean last = index + 1 >= count;
             if (end) {
-                return last ? "└─ " : "├─ ";
+                return last ? LogDependencyVisitor.this.lastTreeNode
+                        : LogDependencyVisitor.this.treeNode;
             }
-            return last ? "   " : "|  ";
+            return last ? "   " : LogDependencyVisitor.this.treeConnector;
         }
     }
-    
+
     public interface Log {
-        
+
         void info(String message);
-        
+
     }
 }
