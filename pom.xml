@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.atomist</groupId>
 	<artifactId>rug-resolver</artifactId>
-	<version>0.3.3-SNAPSHOT</version>
+	<version>0.3.4-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>rug-resolver</name>
 	<description>Resolver library used to resolve Rug Operations and Archives</description>
