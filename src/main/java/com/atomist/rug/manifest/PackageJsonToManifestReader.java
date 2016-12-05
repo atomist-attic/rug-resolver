@@ -72,8 +72,10 @@ class PackageJsonToManifestReader {
                 Map<String, Object> packageJson = readPackageJson(
                         packageJsonOption.get().content());
                 Map<String, Object> atomistJson = (Map<String, Object>) packageJson.get("atomist");
-                return new Gav((String) atomistJson.get("group"),
+                if (atomistJson != null && atomistJson.containsKey("group") && atomistJson.containsKey("artifact")) {
+                	return new Gav((String) atomistJson.get("group"),
                         (String) atomistJson.get("artifact"), (String) packageJson.get("version"));
+                }
             }
             else {
                 throw new ManifestException(String.format(
