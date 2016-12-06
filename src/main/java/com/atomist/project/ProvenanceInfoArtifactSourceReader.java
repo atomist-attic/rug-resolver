@@ -1,5 +1,6 @@
 package com.atomist.project;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -7,9 +8,12 @@ import java.util.Optional;
 
 import org.yaml.snakeyaml.Yaml;
 
+import com.atomist.rug.git.RepositoryDetails;
+import com.atomist.rug.git.RepositoryDetailsProvider;
 import com.atomist.rug.manifest.Manifest;
 import com.atomist.source.ArtifactSource;
 import com.atomist.source.FileArtifact;
+import com.atomist.source.file.FileSystemArtifactSourceIdentifier;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import scala.Option;
@@ -22,10 +26,8 @@ public class ProvenanceInfoArtifactSourceReader {
         String branch = null;
         String sha = null;
 
-        Option<FileArtifact> manifest = source
-                .findFile(".atomist/" + Manifest.FILE_NAME);
-        Option<FileArtifact> packageJson = source
-                .findFile(".atomist/package.json");
+        Option<FileArtifact> manifest = source.findFile(".atomist/" + Manifest.FILE_NAME);
+        Option<FileArtifact> packageJson = source.findFile(".atomist/package.json");
 
         if (manifest.isDefined()) {
             Yaml yaml = new Yaml();
@@ -42,7 +44,8 @@ public class ProvenanceInfoArtifactSourceReader {
                 branch = (String) allDocuments.get("branch");
             }
             if (allDocuments.containsKey("sha")) {
-                sha = (String) allDocuments.get("sha");
+                // Sometimes the sha gets written out as number
+                sha = allDocuments.get("sha").toString();
             }
         }
         else if (packageJson.isDefined()) {
@@ -59,10 +62,8 @@ public class ProvenanceInfoArtifactSourceReader {
                         branch = (String) atomist.get("branch");
                     }
                     if (atomist.containsKey("sha")) {
-                        sha = (String) atomist.get("sha");
-                    }
-                    if (repo != null && branch != null && sha != null) {
-                        return Optional.of(new SimpleProvenanceInfo(repo, branch, sha));
+                        // Sometimes the sha gets written out as number
+                        sha = atomist.get("sha").toString();
                     }
                 }
             }
@@ -73,9 +74,24 @@ public class ProvenanceInfoArtifactSourceReader {
         if (repo != null && branch != null && sha != null) {
             return Optional.of(new SimpleProvenanceInfo(repo, branch, sha));
         }
-        else {
-            return Optional.empty();
+
+        // In case of local project we are working on, there is still a chance to obtain the
+        // provenance info
+        if (source.id() instanceof FileSystemArtifactSourceIdentifier) {
+            File rootFile = ((FileSystemArtifactSourceIdentifier) source.id()).rootFile();
+            try {
+                RepositoryDetails details = new RepositoryDetailsProvider().readDetails(rootFile);
+                if (details != null) {
+                    return Optional.of(new SimpleProvenanceInfo(details.repo(), details.branch(),
+                            details.sha()));
+                }
+            }
+            catch (IOException e) {
+            }
         }
+
+        return Optional.empty();
+
     }
 
 }

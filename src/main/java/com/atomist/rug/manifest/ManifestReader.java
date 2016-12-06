@@ -3,10 +3,13 @@ package com.atomist.rug.manifest;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.parser.ParserException;
 
+import com.atomist.project.ProvenanceInfo;
+import com.atomist.project.ProvenanceInfoArtifactSourceReader;
 import com.atomist.source.ArtifactSource;
 import com.atomist.source.FileArtifact;
 
@@ -31,10 +34,6 @@ class ManifestReader {
                 String version = (String) manifestYaml.get("version");
                 String requires = (String) manifestYaml.get("requires");
 
-                String repo = (String) manifestYaml.get("repo");
-                String branch = (String) manifestYaml.get("branch");
-                Object sha = manifestYaml.get("sha");
-                
                 if (group != null) {
                     manifest.setGroup(group);
                 }
@@ -46,15 +45,6 @@ class ManifestReader {
                 }
                 if (requires != null) {
                     manifest.setRequires(requires);
-                }
-                if (repo != null) {
-                    manifest.setRepo(repo);
-                }
-                if (branch != null) {
-                    manifest.setBranch(branch);
-                }
-                if (sha != null) {
-                    manifest.setSha(sha.toString());
                 }
                 
                 List<String> dependencies = (List<String>) manifestYaml.getOrDefault("dependencies",
@@ -77,7 +67,14 @@ class ManifestReader {
                 }
             });
             
-
+            Optional<ProvenanceInfo> provenanceInfoOptional = new ProvenanceInfoArtifactSourceReader().read(source);
+            if (provenanceInfoOptional.isPresent()) {
+                ProvenanceInfo provenanceInfo = provenanceInfoOptional.get();
+                manifest.setRepo(provenanceInfo.repo().get());
+                manifest.setBranch(provenanceInfo.branch().get());
+                manifest.setSha(provenanceInfo.sha().get());
+            }
+            
             return ManifestValidator.validate(manifest);
         }
         throw new ManifestException("manifest.yml could not be found in .atomist");
