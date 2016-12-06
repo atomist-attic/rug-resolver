@@ -10,7 +10,7 @@ import org.apache.commons.lang3.StringUtils
 @Component
 class ProvenanceInfoWriter {
 
-  val ProvenanceFile: String = ".provenance.txt"
+  val ProvenanceFile: String = ".provenance.yml"
   val SecretKeys: Seq[String] = Seq("password", "key", "secret", "token", "user")
 
   def write(projectSource: ArtifactSource, po: ProjectOperation, poa: ProjectOperationArguments): ArtifactSource = {
@@ -27,28 +27,29 @@ class ProvenanceInfoWriter {
   }
   
   def write(po: ProjectOperation, poa: ProjectOperationArguments): String = {
-    val content: StringBuilder = new StringBuilder()
-
+    val content = new StringBuilder()
+    
+    content.append("---\n");
+    
     po match {
       case g: ProjectGenerator =>
-        content.append("# generator info\n")
+        content.append("generator:\n")
       case e: ProjectEditor =>
-        content.append("####\n\n")
-        content.append("# editor info\n")
+        content.append("editor:\n")
       case _ =>
     }
 
     po match {
       case p: ProvenanceInfo =>
-        content.append(s"name: ${p.name()}\n")
-        content.append(s"group: ${p.group.getOrElse("n/a")}\n")
-        content.append(s"artifact: ${p.artifact.getOrElse("n/a")}\n")
-        content.append(s"version: ${p.version.getOrElse("n/a")}\n")
+        content.append(s"""  name: "${p.name()}"\n""")
+        content.append(s"""  group: "${p.group.getOrElse("n/a")}"\n""")
+        content.append(s"""  artifact: "${p.artifact.getOrElse("n/a")}"\n""")
+        content.append(s"""  version: "${p.version.getOrElse("n/a")}"\n""")
 
-        content.append("\n# backing git repo\n")
-        content.append(s"repo: ${p.repo().getOrElse("n/a")}\n")
-        content.append(s"branch: ${p.branch().getOrElse("n/a")}\n")
-        content.append(s"sha: ${p.sha().getOrElse("n/a")}\n")
+        content.append(s"""  origin:\n""")
+        content.append(s"""    repo: "${p.repo().getOrElse("n/a")}"\n""")
+        content.append(s"""    branch: "${p.branch().getOrElse("n/a")}"\n""")
+        content.append(s"""    sha: "${p.sha().getOrElse("n/a")}"\n""")
       case _ =>
     }
     
@@ -66,8 +67,8 @@ class ProvenanceInfoWriter {
       
     }
 
-    content.append("\n# parameter values\n")
-    poa.parameterValues.foreach(p => content.append(s"${p.getName}: ${sanitizeValue(p.getName, p.getValue)}\n"))
+    content.append(s"""  parameters:\n""")
+    poa.parameterValues.foreach(p => content.append(s"""    - "${p.getName}": "${sanitizeValue(p.getName, p.getValue)}"\n"""))
     content.append("\n")
     content.toString()
   }
