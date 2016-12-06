@@ -55,5 +55,9 @@ public class RepositoryDetailsProvider {
 
             return new RepositoryDetails(url, branch, sha, date);
         }
+        catch (IllegalArgumentException e) {
+            // If jgit can't find a .git directory it throws an IllegalArgumentException
+            return null;
+        }
     }
 }
