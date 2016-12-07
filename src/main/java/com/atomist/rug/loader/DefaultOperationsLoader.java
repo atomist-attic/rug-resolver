@@ -80,7 +80,8 @@ public class DefaultOperationsLoader implements OperationsLoader {
         ArtifactSource source = null;
         for (ArtifactDescriptor ad : dependencies) {
             ArtifactSource artifactSource = createArtifactSource(ad);
-            if (ad.match(artifact.group(), artifact.artifact(), artifact.version(), Extension.ZIP)) {
+            if (ad.match(artifact.group(), artifact.artifact(), artifact.version(),
+                    Extension.ZIP)) {
                 operations = loadArtifact(ad, artifactSource, reader, otherOperations);
                 source = artifactSource;
             }
@@ -91,8 +92,7 @@ public class DefaultOperationsLoader implements OperationsLoader {
         }
 
         if (operations == null) {
-            operations = new Operations(
-                    JavaConversions.asScalaBuffer(Collections.emptyList()),
+            operations = new Operations(JavaConversions.asScalaBuffer(Collections.emptyList()),
                     JavaConversions.asScalaBuffer(Collections.emptyList()),
                     JavaConversions.asScalaBuffer(Collections.emptyList()),
                     JavaConversions.asScalaBuffer(Collections.emptyList()));
@@ -119,7 +119,7 @@ public class DefaultOperationsLoader implements OperationsLoader {
 
         return postProcess(artifact, operations, source);
     }
-    
+
     protected DependencyResolver dependencyResolver() {
         return resolver;
     }
@@ -160,11 +160,12 @@ public class DefaultOperationsLoader implements OperationsLoader {
         try {
             return reader.findOperations(source,
                     Option.apply(artifact.group() + "." + artifact.artifact()),
-                    JavaConversions.asScalaBuffer(otherOperations).toList());
+                    JavaConversions.asScalaBuffer(otherOperations).toList(),
+                    reader.findOperations$default$4());
         }
         catch (RugRuntimeException e) {
-            LOGGER.error(String.format("Failed to load Rug archive for %s:%s:%s",
-                    artifact.group(), artifact.artifact(), artifact.version()), e);
+            LOGGER.error(String.format("Failed to load Rug archive for %s:%s:%s", artifact.group(),
+                    artifact.artifact(), artifact.version()), e);
             throw new OperationsLoaderRuntimeException(
                     String.format("Failed to load Rug archive for %s:%s:%s", artifact.group(),
                             artifact.artifact(), artifact.version()),
