@@ -17,22 +17,26 @@ public class LogDependencyVisitor implements DependencyVisitor {
     private Log out;
     private DependencyVisitor visitor;
 
-    protected String treeNode = "├─ ";
-    protected String lastTreeNode = "└─ ";
-    protected String treeConnector = "|  ";
+    protected String treeNode = "├── ";
+    protected String lastTreeNode = "└── ";
+    protected String treeConnector = "| ";
+    protected String treeNodeWithChildren = "├─┬ ";
+    protected String lastTreeNodeWithChildre = "└─┬ ";
 
     private List<ChildInfo> childInfos = new ArrayList<ChildInfo>();
 
     public LogDependencyVisitor(Log out) {
         this.out = out;
     }
-    
-    public LogDependencyVisitor(Log out, String treeNode, String lastTreeNode,
-            String treeConnector) {
+
+    public LogDependencyVisitor(Log out, String treeNode, String lastTreeNode, String treeConnector,
+            String treeNodeWithChildren, String lastTreeNodeWithChildren) {
         this.out = out;
         this.lastTreeNode = lastTreeNode;
         this.treeConnector = treeConnector;
         this.treeNode = treeNode;
+        this.treeNodeWithChildren = treeNodeWithChildren;
+        this.lastTreeNodeWithChildre = lastTreeNodeWithChildren;
     }
 
     public LogDependencyVisitor(Log out, DependencyVisitor visitor) {
@@ -41,15 +45,15 @@ public class LogDependencyVisitor implements DependencyVisitor {
     }
 
     public boolean visitEnter(DependencyNode node) {
-        out.info(formatIndentation() + formatNode(node));
+        out.info(formatIndentation(node) + formatNode(node));
         childInfos.add(new ChildInfo(node.getChildren().size()));
         return (visitor != null ? visitor.visitEnter(node) : true);
     }
 
-    private String formatIndentation() {
+    private String formatIndentation(DependencyNode node) {
         StringBuilder buffer = new StringBuilder(128);
         for (Iterator<ChildInfo> it = childInfos.iterator(); it.hasNext();) {
-            buffer.append(it.next().formatIndentation(!it.hasNext()));
+            buffer.append(it.next().formatIndentation(node, !it.hasNext()));
         }
         return buffer.toString();
     }
@@ -114,13 +118,19 @@ public class LogDependencyVisitor implements DependencyVisitor {
             this.count = count;
         }
 
-        public String formatIndentation(boolean end) {
+        public String formatIndentation(DependencyNode node, boolean end) {
             boolean last = index + 1 >= count;
             if (end) {
-                return last ? LogDependencyVisitor.this.lastTreeNode
-                        : LogDependencyVisitor.this.treeNode;
+                return last
+                        ? (!node.getChildren().isEmpty()
+                                ? LogDependencyVisitor.this.lastTreeNodeWithChildre
+                                : LogDependencyVisitor.this.lastTreeNode)
+                        : (!node.getChildren().isEmpty()
+                                ? LogDependencyVisitor.this.treeNodeWithChildren
+                                : LogDependencyVisitor.this.treeNode);
             }
-            return last ? "   " : LogDependencyVisitor.this.treeConnector;
+            return last ? (LogDependencyVisitor.this.treeConnector.length() == 2 ? "  " : "   ")
+                    : LogDependencyVisitor.this.treeConnector;
         }
     }
 
