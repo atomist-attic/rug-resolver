@@ -10,12 +10,12 @@ import org.apache.commons.lang3.StringUtils
 @Component
 class ProvenanceInfoWriter {
 
-  val ProvenanceFile: String = ".provenance.yml"
+  val ProvenanceFile: String = ".atomist.yml"
   val SecretKeys: Seq[String] = Seq("password", "key", "secret", "token", "user")
 
-  def write(projectSource: ArtifactSource, po: ProjectOperation, poa: ProjectOperationArguments): ArtifactSource = {
+  def write(projectSource: ArtifactSource, po: ProjectOperation, poa: ProjectOperationArguments, client: String): ArtifactSource = {
   
-    val content = write(po, poa)
+    val content = write(po, poa, client)
     
     val provenanceFile = projectSource.findFile(ProvenanceFile)
     val updatedContent = provenanceFile match {
@@ -26,10 +26,12 @@ class ProvenanceInfoWriter {
     projectSource.+(StringFileArtifact.apply(ProvenanceFile, updatedContent))
   }
   
-  def write(po: ProjectOperation, poa: ProjectOperationArguments): String = {
+  def write(po: ProjectOperation, poa: ProjectOperationArguments, client: String): String = {
     val content = new StringBuilder()
     
     content.append("---\n");
+    content.append(s"""kind: "operation"\n""");
+    content.append(s"""client: "${client}"\n""");
     
     po match {
       case g: ProjectGenerator =>
