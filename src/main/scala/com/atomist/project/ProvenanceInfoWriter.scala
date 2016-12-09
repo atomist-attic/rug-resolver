@@ -2,7 +2,7 @@ package com.atomist.project;
 
 import com.atomist.project.edit.ProjectEditor
 import com.atomist.project.generate.ProjectGenerator
-import com.atomist.source.{ArtifactSource, StringFileArtifact}
+import com.atomist.source.{ ArtifactSource, StringFileArtifact }
 import org.springframework.stereotype.Component
 import org.apache.commons.lang3.text.WordUtils
 import org.apache.commons.lang3.StringUtils
@@ -14,9 +14,9 @@ class ProvenanceInfoWriter {
   val SecretKeys: Seq[String] = Seq("password", "key", "secret", "token", "user")
 
   def write(projectSource: ArtifactSource, po: ProjectOperation, poa: ProjectOperationArguments, client: String): ArtifactSource = {
-  
+
     val content = write(po, poa, client)
-    
+
     val provenanceFile = projectSource.findFile(ProvenanceFile)
     val updatedContent = provenanceFile match {
       case Some(existingContent) => existingContent.content + content
@@ -25,19 +25,21 @@ class ProvenanceInfoWriter {
 
     projectSource.+(StringFileArtifact.apply(ProvenanceFile, updatedContent))
   }
-  
+
   def write(po: ProjectOperation, poa: ProjectOperationArguments, client: String): String = {
     val content = new StringBuilder()
-    
+
     content.append("---\n");
     content.append(s"""kind: "operation"\n""");
     content.append(s"""client: "${client}"\n""");
-    
+
     po match {
       case g: ProjectGenerator =>
         content.append("generator:\n")
       case e: ProjectEditor =>
         content.append("editor:\n")
+      case e: Executor =>
+        content.append("executor:\n")
       case _ =>
     }
 
@@ -54,23 +56,24 @@ class ProvenanceInfoWriter {
         content.append(s"""    sha: "${p.sha().getOrElse("n/a")}"\n""")
       case _ =>
     }
-    
+
     def sanitizeValue(key: String, value: Any): Any = {
       value match {
-        case s: String => 
+        case s: String =>
           if (SecretKeys.filter { sec => key.toLowerCase().contains(sec.toLowerCase()) }.isEmpty) {
             s
-          }
-          else {
-            s.charAt(0) + ("*" * (s.length() - 2)) + s.last 
+          } else {
+            s.charAt(0) + ("*" * (s.length() - 2)) + s.last
           }
         case _ => value
       }
-      
+
     }
 
-    content.append(s"""  parameters:\n""")
-    poa.parameterValues.foreach(p => content.append(s"""    - "${p.getName}": "${sanitizeValue(p.getName, p.getValue)}"\n"""))
+    if (!poa.parameterValues.isEmpty) {
+      content.append(s"""  parameters:\n""")
+      poa.parameterValues.foreach(p => content.append(s"""    - "${p.getName}": "${sanitizeValue(p.getName, p.getValue)}"\n"""))
+    }
     content.append("\n")
     content.toString()
   }
