@@ -80,8 +80,10 @@ public class ProvenanceInfoArtifactSourceReader {
         if (source.id() instanceof FileSystemArtifactSourceIdentifier) {
             File rootFile = ((FileSystemArtifactSourceIdentifier) source.id()).rootFile();
             try {
-                RepositoryDetails details = new RepositoryDetailsProvider().readDetails(rootFile);
-                if (details != null) {
+                Optional<RepositoryDetails> detailsOptional = new RepositoryDetailsProvider()
+                        .readDetails(rootFile);
+                if (detailsOptional.isPresent()) {
+                    RepositoryDetails details = detailsOptional.get();
                     return Optional.of(new SimpleProvenanceInfo(details.repo(), details.branch(),
                             details.sha()));
                 }

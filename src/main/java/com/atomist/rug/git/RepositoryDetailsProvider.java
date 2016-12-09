@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Optional;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.Status;
@@ -17,7 +18,7 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
 public class RepositoryDetailsProvider {
 
-    public RepositoryDetails readDetails(File projectRoot) throws IOException {
+    public Optional<RepositoryDetails> readDetails(File projectRoot) throws IOException {
         FileRepositoryBuilder builder = new FileRepositoryBuilder();
         try (Repository repository = builder.readEnvironment().findGitDir().build()) {
             if (repository.getDirectory() == null) {
@@ -53,11 +54,13 @@ public class RepositoryDetailsProvider {
                 // We don't care if those come up here
             }
 
-            return new RepositoryDetails(url, branch, sha, date);
+            if (url != null && branch != null && sha != null) {
+                return Optional.of(new RepositoryDetails(url, branch, sha, date));
+            }
         }
         catch (IllegalArgumentException e) {
             // If jgit can't find a .git directory it throws an IllegalArgumentException
-            return null;
         }
+        return Optional.empty();
     }
 }
