@@ -29,12 +29,16 @@ import com.atomist.project.ProjectOperation;
 import com.atomist.project.ProvenanceInfo;
 import com.atomist.project.ProvenanceInfoArtifactSourceWriter;
 import com.atomist.project.archive.Operations;
+<<<<<<< 909e4e1d10230a22688b1af1b43792063a55d249
 import com.atomist.rug.loader.DecoratingOperationsLoader;
 import com.atomist.rug.loader.DecoratingOperationsLoader.DelegatingProjectOperation;
+=======
+>>>>>>> Write metadata.json to Rug archive
 import com.atomist.rug.manifest.Manifest;
 import com.atomist.rug.manifest.ManifestFactory;
 import com.atomist.rug.manifest.ManifestPomWriter;
 import com.atomist.rug.manifest.ManifestWriter;
+import com.atomist.rug.metadata.MetadataWriter;
 import com.atomist.rug.resolver.ArtifactDescriptor;
 import com.atomist.rug.resolver.maven.MavenConfiguration;
 import com.atomist.source.ArtifactSource;
@@ -97,16 +101,16 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
         doWithRepositorySession(system, session, source, manifest, zip, pom);
     }
 
-    protected abstract ProvenanceInfo getProvenanceInfo();
-
     protected abstract void doWithRepositorySession(RepositorySystem system,
             RepositorySystemSession session, ArtifactSource source, Manifest manifest, Artifact zip,
             Artifact pom);
 
+    protected abstract ProvenanceInfo getProvenanceInfo();
+
     private DefaultRepositorySystemSession createRepositorySession() {
         DefaultRepositorySystemSession session = MavenRepositorySystemUtils.newSession();
         session.setProxySelector(new ConservativeProxySelector(new JreProxySelector()));
-
+        
         LocalRepository localRepo = new LocalRepository(localRepository);
         try {
             session.setLocalRepositoryManager(
@@ -127,9 +131,9 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
                 new SimpleSourceUpdateInfo(zipFile.getName()));
     }
 
-    private ArtifactSource writeProvenanceInfoToArtifactSource(ProvenanceInfo provenanceInfo,
-            ArtifactSource source) {
-        return new ProvenanceInfoArtifactSourceWriter().write(provenanceInfo, source);
+    private ArtifactSource writeMetadataToArtifactSource(Operations operations,
+            ArtifactDescriptor artifact, ArtifactSource source) {
+        return new MetadataWriter().write(operations, artifact, source);
     }
 
     private File writePom(Manifest manifest, ArtifactDescriptor artifact, File projectRoot) {
@@ -177,108 +181,8 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
 
     }
 
-    private ArtifactSource writeMetadataToArtifactSource(Operations operations,
-            ArtifactDescriptor artifact, ArtifactSource source) {
-        try {
-            ArchiveMetadata metadata = new ArchiveMetadata(operations, artifact);
-            String metadataJson = objectMapper().writeValueAsString(metadata);
-            FileArtifact metadataFile = new StringFileArtifact("metadata.json", ".atomist",
-                    metadataJson);
-            return source.plus(metadataFile);
-        }
-        catch (JsonProcessingException e) {
-            // TODO throw exception
-        }
-
-        return source;
-    }
-
-    private ObjectMapper objectMapper() {
-        // ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-        ObjectMapper mapper = new ObjectMapper();
-        new Jackson2ObjectMapperBuilder()
-                .modulesToInstall(new MetadataModule(), new DefaultScalaModule())
-                .serializationInclusion(JsonInclude.Include.NON_NULL)
-                .serializationInclusion(JsonInclude.Include.NON_ABSENT)
-                .serializationInclusion(JsonInclude.Include.NON_EMPTY)
-                .featuresToEnable(SerializationFeature.INDENT_OUTPUT)
-                .featuresToDisable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS,
-                        DeserializationFeature.ADJUST_DATES_TO_CONTEXT_TIME_ZONE,
-                        DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-                .configure(mapper);
-        return mapper;
-    }
-
-    private static class ArchiveMetadata {
-
-        @JsonProperty
-        private String group;
-        @JsonProperty
-        private String artifact;
-        @JsonProperty
-        private String version;
-
-        @JsonProperty
-        private List<Operation> editors;
-        @JsonProperty
-        private List<Operation> generators;
-        @JsonProperty
-        private List<Operation> executors;
-        @JsonProperty
-        private List<Operation> reviewers;
-
-        public ArchiveMetadata(Operations operations, ArtifactDescriptor artifact) {
-            this.editors = JavaConversions.asJavaCollection(operations.editors()).stream()
-                    .map(e -> new Operation(e)).collect(Collectors.toList());
-            this.generators = JavaConversions.asJavaCollection(operations.generators()).stream()
-                    .map(e -> new Operation(e)).collect(Collectors.toList());
-            this.executors = JavaConversions.asJavaCollection(operations.executors()).stream()
-                    .map(e -> new Operation(e)).collect(Collectors.toList());
-            this.reviewers = JavaConversions.asJavaCollection(operations.reviewers()).stream()
-                    .map(e -> new Operation(e)).collect(Collectors.toList());
-            this.group = artifact.group();
-            this.artifact = artifact.artifact();
-            this.version = artifact.version();
-        }
-
-    }
-
-    private static class Operation {
-
-        @JsonProperty
-        private String name;
-        @JsonProperty
-        private String description;
-        @JsonProperty
-        private Collection<Parameter> parameters;
-        @JsonProperty
-        private Collection<Tag> tags;
-
-        public Operation(ProjectOperation operation) {
-            this.name = operation.name();
-            this.description = operation.description();
-            this.parameters = JavaConversions.asJavaCollection(operation.parameters());
-            this.tags = JavaConversions.asJavaCollection(operation.tags());
-        }
-    }
-
-    public class TagSerializer extends JsonSerializer<Tag> {
-
-        @Override
-        public void serialize(Tag value, JsonGenerator gen, SerializerProvider serializers)
-                throws IOException, JsonProcessingException {
-            gen.writeStartObject();
-            gen.writeStringField("name", value.name());
-            gen.writeStringField("decription", value.description());
-            gen.writeEndObject();
-        }
-    }
-
-    public class MetadataModule extends SimpleModule {
-
-        public MetadataModule() {
-            super();
-            addSerializer(Tag.class, new TagSerializer());
-        }
+    private ArtifactSource writeProvenanceInfoToArtifactSource(ProvenanceInfo provenanceInfo,
+            ArtifactSource source) {
+        return new ProvenanceInfoArtifactSourceWriter().write(provenanceInfo, source);
     }
 }
