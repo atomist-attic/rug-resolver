@@ -5,9 +5,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
 import org.eclipse.aether.DefaultRepositorySystemSession;
@@ -21,19 +18,10 @@ import org.eclipse.aether.repository.NoLocalRepositoryManagerException;
 import org.eclipse.aether.util.artifact.SubArtifact;
 import org.eclipse.aether.util.repository.ConservativeProxySelector;
 import org.eclipse.aether.util.repository.JreProxySelector;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
-import com.atomist.param.Parameter;
-import com.atomist.param.Tag;
-import com.atomist.project.ProjectOperation;
 import com.atomist.project.ProvenanceInfo;
 import com.atomist.project.ProvenanceInfoArtifactSourceWriter;
 import com.atomist.project.archive.Operations;
-<<<<<<< 909e4e1d10230a22688b1af1b43792063a55d249
-import com.atomist.rug.loader.DecoratingOperationsLoader;
-import com.atomist.rug.loader.DecoratingOperationsLoader.DelegatingProjectOperation;
-=======
->>>>>>> Write metadata.json to Rug archive
 import com.atomist.rug.manifest.Manifest;
 import com.atomist.rug.manifest.ManifestFactory;
 import com.atomist.rug.manifest.ManifestPomWriter;
@@ -48,20 +36,6 @@ import com.atomist.source.SimpleSourceUpdateInfo;
 import com.atomist.source.StringFileArtifact;
 import com.atomist.source.file.StreamingZipFileOutput;
 import com.atomist.source.file.ZipFileArtifactSourceWriter;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.module.scala.DefaultScalaModule;
-
-import scala.collection.JavaConversions;
 
 public abstract class AbstractMavenBasedDeployer implements Deployer {
 
