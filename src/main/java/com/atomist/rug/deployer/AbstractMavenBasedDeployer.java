@@ -61,7 +61,8 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
 
         writeArtifactSourceToZip(archive, source);
         File pomFile = writePom(manifest, artifact, root);
-
+        File metadataFile = writeMetadataFile(source, artifact, root);
+        
         RepositorySystem system = new MavenConfiguration().repositorySystem();
         RepositorySystemSession session = createRepositorySession();
 
@@ -71,13 +72,15 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
 
         Artifact pom = new SubArtifact(zip, "", "pom");
         pom = pom.setFile(pomFile);
+        Artifact metadata = new SubArtifact(zip, "metadata", "json");
+        metadata = metadata.setFile(metadataFile);
 
-        doWithRepositorySession(system, session, source, manifest, zip, pom);
+        doWithRepositorySession(system, session, source, manifest, zip, pom, metadata);
     }
 
     protected abstract void doWithRepositorySession(RepositorySystem system,
             RepositorySystemSession session, ArtifactSource source, Manifest manifest, Artifact zip,
-            Artifact pom);
+            Artifact pom, Artifact metadata);
 
     protected abstract ProvenanceInfo getProvenanceInfo();
 
@@ -108,6 +111,25 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
     private ArtifactSource writeMetadataToArtifactSource(Operations operations,
             ArtifactDescriptor artifact, ArtifactSource source) {
         return new MetadataWriter().write(operations, artifact, source);
+    }
+    
+    private File writeMetadataFile(ArtifactSource source, ArtifactDescriptor artifact, File projectRoot) {
+        String metadataContents = source.findFile(".atomist/metadata.json").get().content();
+        
+        File metadataFile = new File(projectRoot,
+                ".atomist/target/" + artifact.artifact() + "-" + artifact.version() + "-metadata.json");
+        if (!metadataFile.getParentFile().exists()) {
+            metadataFile.getParentFile().mkdirs();
+        }
+
+        try (PrintStream out = new PrintStream(new FileOutputStream(metadataFile))) {
+            out.print(metadataContents);
+        }
+        catch (FileNotFoundException e) {
+            // This can't really happen
+        }
+
+        return metadataFile;
     }
 
     private File writePom(Manifest manifest, ArtifactDescriptor artifact, File projectRoot) {
