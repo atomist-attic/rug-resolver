@@ -26,6 +26,7 @@ import org.eclipse.aether.repository.LocalRepository;
 import org.eclipse.aether.repository.NoLocalRepositoryManagerException;
 import org.eclipse.aether.repository.ProxySelector;
 import org.eclipse.aether.repository.RemoteRepository;
+import org.eclipse.aether.repository.RepositoryPolicy;
 import org.eclipse.aether.resolution.ArtifactDescriptorException;
 import org.eclipse.aether.resolution.ArtifactDescriptorRequest;
 import org.eclipse.aether.resolution.ArtifactRequest;
@@ -331,6 +332,7 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
                 new ExclusionDependencySelector(exclusions));
 
         session.setDependencySelector(depFilter);
+        session.setUpdatePolicy(RepositoryPolicy.UPDATE_POLICY_ALWAYS);
 
         if (transferListener != null) {
             session.setTransferListener(transferListener);
