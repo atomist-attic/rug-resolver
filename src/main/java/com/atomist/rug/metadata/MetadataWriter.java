@@ -128,6 +128,7 @@ public class MetadataWriter {
         }
     }
 
+    @SuppressWarnings("serial")
     public class MetadataModule extends SimpleModule {
 
         public MetadataModule() {
