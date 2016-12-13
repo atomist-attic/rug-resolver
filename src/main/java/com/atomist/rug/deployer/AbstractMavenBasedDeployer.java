@@ -22,6 +22,8 @@ import org.eclipse.aether.util.repository.JreProxySelector;
 import com.atomist.project.ProvenanceInfo;
 import com.atomist.project.ProvenanceInfoArtifactSourceWriter;
 import com.atomist.project.archive.Operations;
+import com.atomist.rug.compiler.typescript.TypeScriptCompiler;
+import com.atomist.rug.compiler.typescript.TypeScriptCompilerContext;
 import com.atomist.rug.manifest.Manifest;
 import com.atomist.rug.manifest.ManifestFactory;
 import com.atomist.rug.manifest.ManifestPomWriter;
@@ -55,14 +57,13 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
 
         Manifest manifest = ManifestFactory.read(source);
         manifest.setVersion(artifact.version());
-        source = writePomAndManifestToArtifactSource(artifact, source, manifest);
-        source = writeProvenanceInfoToArtifactSource(getProvenanceInfo(), source);
-        source = writeMetadataToArtifactSource(operations, artifact, source);
+        source = generateMetadata(operations, artifact, source, manifest);
+        source = compileTypeScript(artifact, source);
 
         writeArtifactSourceToZip(archive, source);
         File pomFile = writePom(manifest, artifact, root);
         File metadataFile = writeMetadataFile(source, artifact, root);
-        
+
         RepositorySystem system = new MavenConfiguration().repositorySystem();
         RepositorySystemSession session = createRepositorySession();
 
@@ -78,6 +79,26 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
         doWithRepositorySession(system, session, source, manifest, zip, pom, metadata);
     }
 
+    protected ArtifactSource generateMetadata(Operations operations, ArtifactDescriptor artifact,
+            ArtifactSource source, Manifest manifest) {
+        source = writePomAndManifest(artifact, source, manifest);
+        source = writeProvenanceInfo(getProvenanceInfo(), source);
+        source = writeMetadata(operations, artifact, source);
+        return source;
+    }
+
+    protected ArtifactSource compileTypeScript(ArtifactDescriptor artifact, ArtifactSource source) {
+        TypeScriptCompilerContext compilerContext = new TypeScriptCompilerContext();
+        try {
+            compilerContext.init();
+            TypeScriptCompiler compiler = compilerContext.compiler();
+            return compiler.compile(source);
+        }
+        finally {
+            compilerContext.shutdown();
+        }
+    }
+
     protected abstract void doWithRepositorySession(RepositorySystem system,
             RepositorySystemSession session, ArtifactSource source, Manifest manifest, Artifact zip,
             Artifact pom, Artifact metadata);
@@ -87,7 +108,7 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
     private DefaultRepositorySystemSession createRepositorySession() {
         DefaultRepositorySystemSession session = MavenRepositorySystemUtils.newSession();
         session.setProxySelector(new ConservativeProxySelector(new JreProxySelector()));
-        
+
         LocalRepository localRepo = new LocalRepository(localRepository);
         try {
             session.setLocalRepositoryManager(
@@ -108,16 +129,17 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
                 new SimpleSourceUpdateInfo(zipFile.getName()));
     }
 
-    private ArtifactSource writeMetadataToArtifactSource(Operations operations,
+    private ArtifactSource writeMetadata(Operations operations,
             ArtifactDescriptor artifact, ArtifactSource source) {
         return new MetadataWriter().write(operations, artifact, source);
     }
-    
-    private File writeMetadataFile(ArtifactSource source, ArtifactDescriptor artifact, File projectRoot) {
+
+    private File writeMetadataFile(ArtifactSource source, ArtifactDescriptor artifact,
+            File projectRoot) {
         String metadataContents = source.findFile(".atomist/metadata.json").get().content();
-        
-        File metadataFile = new File(projectRoot,
-                ".atomist/target/" + artifact.artifact() + "-" + artifact.version() + "-metadata.json");
+
+        File metadataFile = new File(projectRoot, ".atomist/target/" + artifact.artifact() + "-"
+                + artifact.version() + "-metadata.json");
         if (!metadataFile.getParentFile().exists()) {
             metadataFile.getParentFile().mkdirs();
         }
@@ -151,7 +173,7 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
         return pomFile;
     }
 
-    private ArtifactSource writePomAndManifestToArtifactSource(ArtifactDescriptor artifact,
+    private ArtifactSource writePomAndManifest(ArtifactDescriptor artifact,
             ArtifactSource source, Manifest manifest) {
         String manifestContents = new ManifestWriter().write(manifest);
         String manifestPomContents = new ManifestPomWriter().write(manifest, artifact);
@@ -177,7 +199,7 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
 
     }
 
-    private ArtifactSource writeProvenanceInfoToArtifactSource(ProvenanceInfo provenanceInfo,
+    private ArtifactSource writeProvenanceInfo(ProvenanceInfo provenanceInfo,
             ArtifactSource source) {
         return new ProvenanceInfoArtifactSourceWriter().write(provenanceInfo, source);
     }
