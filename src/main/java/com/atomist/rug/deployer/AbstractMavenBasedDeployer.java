@@ -18,6 +18,7 @@ import org.eclipse.aether.repository.NoLocalRepositoryManagerException;
 import org.eclipse.aether.util.artifact.SubArtifact;
 import org.eclipse.aether.util.repository.ConservativeProxySelector;
 import org.eclipse.aether.util.repository.JreProxySelector;
+import org.springframework.util.Assert;
 
 import com.atomist.project.ProvenanceInfo;
 import com.atomist.project.ProvenanceInfoArtifactSourceWriter;
@@ -42,9 +43,16 @@ import com.atomist.source.file.ZipFileArtifactSourceWriter;
 public abstract class AbstractMavenBasedDeployer implements Deployer {
 
     private String localRepository = null;
+    private DeployerEventListener listener = new DefaultDeployerEventListener();
 
     public AbstractMavenBasedDeployer(String localRespository) {
         this.localRepository = localRespository;
+    }
+    
+    @Override
+    public void registerEventListener(DeployerEventListener listener) {
+        Assert.notNull(listener);
+        this.listener = listener;
     }
 
     @Override
@@ -81,18 +89,23 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
 
     protected ArtifactSource generateMetadata(Operations operations, ArtifactDescriptor artifact,
             ArtifactSource source, Manifest manifest) {
+        listener.metadataGenerationStarted();
         source = writePomAndManifest(artifact, source, manifest);
         source = writeProvenanceInfo(getProvenanceInfo(), source);
         source = writeMetadata(operations, artifact, source);
+        listener.metadataGenerationFinished();
         return source;
     }
 
     protected ArtifactSource compileTypeScript(ArtifactDescriptor artifact, ArtifactSource source) {
+        listener.compilationStarted();
         TypeScriptCompilerContext compilerContext = new TypeScriptCompilerContext();
         try {
             compilerContext.init();
             TypeScriptCompiler compiler = compilerContext.compiler();
-            return compiler.compile(source);
+            ArtifactSource result = compiler.compile(source);
+            listener.compilationFinished(result.deltaFrom(source));
+            return result;
         }
         finally {
             compilerContext.shutdown();
@@ -131,7 +144,12 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
 
     private ArtifactSource writeMetadata(Operations operations,
             ArtifactDescriptor artifact, ArtifactSource source) {
-        return new MetadataWriter().write(operations, artifact, source);
+        FileArtifact metadataFile = new MetadataWriter().create(operations, artifact, source);
+        
+        ArtifactSource result = source.plus(metadataFile);
+        listener.metadataFileGenerated(metadataFile);
+        return result;
+        
     }
 
     private File writeMetadataFile(ArtifactSource source, ArtifactDescriptor artifact,
@@ -182,10 +200,12 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
                 "META-INF/maven/" + artifact.group() + "/" + artifact.artifact(),
                 manifestPomContents);
         source = source.plus(pomArtifact);
+        
+        listener.metadataFileGenerated(pomArtifact);
 
         FileArtifact manifestArtifact = new StringFileArtifact("manifest.yml", ".atomist",
                 manifestContents);
-        return source.edit(new FileEditor() {
+        ArtifactSource result = source.edit(new FileEditor() {
             @Override
             public boolean canAffect(FileArtifact f) {
                 return f.path().equals(manifestArtifact.path());
@@ -197,6 +217,9 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
             }
         });
 
+        listener.metadataFileGenerated(manifestArtifact);
+        
+        return result;
     }
 
     private ArtifactSource writeProvenanceInfo(ProvenanceInfo provenanceInfo,

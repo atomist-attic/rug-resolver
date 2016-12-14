@@ -8,6 +8,9 @@ import com.atomist.rug.resolver.ArtifactDescriptor;
 import com.atomist.source.ArtifactSource;
 
 public interface Deployer {
+    
+    
+    void registerEventListener(DeployerEventListener listener);
 
     void deploy(Operations operations, ArtifactSource source, ArtifactDescriptor artifact,
             File root) throws IOException;

@@ -31,20 +31,17 @@ import scala.collection.JavaConversions;
 
 public class MetadataWriter {
 
-    public ArtifactSource write(Operations operations,
-            ArtifactDescriptor artifact, ArtifactSource source) {
+    public FileArtifact create(Operations operations, ArtifactDescriptor artifact,
+            ArtifactSource source) {
         try {
             ArchiveMetadata metadata = new ArchiveMetadata(operations, artifact);
             String metadataJson = objectMapper().writeValueAsString(metadata);
-            FileArtifact metadataFile = new StringFileArtifact("metadata.json", ".atomist",
-                    metadataJson);
-            return source.plus(metadataFile);
+            return new StringFileArtifact("metadata.json", ".atomist", metadataJson);
         }
         catch (JsonProcessingException e) {
             // TODO throw exception
         }
-
-        return source;
+        return null;
     }
 
     private ObjectMapper objectMapper() {
