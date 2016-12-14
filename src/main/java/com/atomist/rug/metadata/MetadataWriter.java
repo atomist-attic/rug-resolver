@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule;
 
-import scala.collection.JavaConversions;
+import scala.collection.JavaConverters;
 
 public class MetadataWriter {
 
@@ -79,13 +79,13 @@ public class MetadataWriter {
         private List<Operation> reviewers;
 
         public ArchiveMetadata(Operations operations, ArtifactDescriptor artifact) {
-            this.editors = JavaConversions.asJavaCollection(operations.editors()).stream()
+            this.editors = JavaConverters.asJavaCollection(operations.editors()).stream()
                     .map(e -> new Operation(e)).collect(Collectors.toList());
-            this.generators = JavaConversions.asJavaCollection(operations.generators()).stream()
+            this.generators = JavaConverters.asJavaCollection(operations.generators()).stream()
                     .map(e -> new Operation(e)).collect(Collectors.toList());
-            this.executors = JavaConversions.asJavaCollection(operations.executors()).stream()
+            this.executors = JavaConverters.asJavaCollection(operations.executors()).stream()
                     .map(e -> new Operation(e)).collect(Collectors.toList());
-            this.reviewers = JavaConversions.asJavaCollection(operations.reviewers()).stream()
+            this.reviewers = JavaConverters.asJavaCollection(operations.reviewers()).stream()
                     .map(e -> new Operation(e)).collect(Collectors.toList());
             this.group = artifact.group();
             this.artifact = artifact.artifact();
@@ -108,8 +108,8 @@ public class MetadataWriter {
         public Operation(ProjectOperation operation) {
             this.name = operation.name();
             this.description = operation.description();
-            this.parameters = JavaConversions.asJavaCollection(operation.parameters());
-            this.tags = JavaConversions.asJavaCollection(operation.tags());
+            this.parameters = JavaConverters.asJavaCollection(operation.parameters());
+            this.tags = JavaConverters.asJavaCollection(operation.tags());
         }
     }
 

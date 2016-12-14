@@ -32,7 +32,7 @@ import com.atomist.source.file.ZipFileArtifactSourceReader;
 import com.atomist.source.file.ZipFileInput;
 
 import scala.Option;
-import scala.collection.JavaConversions;
+import scala.collection.JavaConverters;
 
 public class DefaultOperationsLoader implements OperationsLoader {
 
@@ -86,32 +86,32 @@ public class DefaultOperationsLoader implements OperationsLoader {
                 source = artifactSource;
             }
             else {
-                otherOperations.addAll(JavaConversions.asJavaCollection(
+                otherOperations.addAll(JavaConverters.asJavaCollection(
                         loadArtifact(ad, artifactSource, reader, otherOperations).allOperations()));
             }
         }
 
         if (operations == null) {
-            operations = new Operations(JavaConversions.asScalaBuffer(Collections.emptyList()),
-                    JavaConversions.asScalaBuffer(Collections.emptyList()),
-                    JavaConversions.asScalaBuffer(Collections.emptyList()),
-                    JavaConversions.asScalaBuffer(Collections.emptyList()));
+            operations = new Operations(JavaConverters.asScalaBuffer(Collections.emptyList()),
+                    JavaConverters.asScalaBuffer(Collections.emptyList()),
+                    JavaConverters.asScalaBuffer(Collections.emptyList()),
+                    JavaConverters.asScalaBuffer(Collections.emptyList()));
         }
 
         if (LOGGER.isInfoEnabled()) {
             StringBuilder sb = new StringBuilder();
             sb.append("editors: [");
             sb.append(StringUtils.collectionToDelimitedString(
-                    JavaConversions.asJavaCollection(operations.editorNames()), ", "));
+                    JavaConverters.asJavaCollection(operations.editorNames()), ", "));
             sb.append("] generators: [");
             sb.append(StringUtils.collectionToDelimitedString(
-                    JavaConversions.asJavaCollection(operations.generatorNames()), ", "));
+                    JavaConverters.asJavaCollection(operations.generatorNames()), ", "));
             sb.append("] reviewers: [");
             sb.append(StringUtils.collectionToDelimitedString(
-                    JavaConversions.asJavaCollection(operations.reviewerNames()), ", "));
+                    JavaConverters.asJavaCollection(operations.reviewerNames()), ", "));
             sb.append("] executors: [");
             sb.append(StringUtils.collectionToDelimitedString(
-                    JavaConversions.asJavaCollection(operations.executorNames()), ", "));
+                    JavaConverters.asJavaCollection(operations.executorNames()), ", "));
             sb.append("]");
             LOGGER.info(String.format("Loaded operations for %s:%s:%s: %s", artifact.group(),
                     artifact.artifact(), artifact.version(), sb.toString()));
@@ -160,7 +160,7 @@ public class DefaultOperationsLoader implements OperationsLoader {
         try {
             return reader.findOperations(source,
                     Option.apply(artifact.group() + "." + artifact.artifact()),
-                    JavaConversions.asScalaBuffer(otherOperations).toList(),
+                    JavaConverters.asScalaBuffer(otherOperations).toList(),
                     reader.findOperations$default$4());
         }
         catch (RugRuntimeException e) {

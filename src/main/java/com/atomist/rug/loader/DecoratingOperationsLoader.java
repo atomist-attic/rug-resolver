@@ -39,7 +39,7 @@ import com.atomist.tree.content.project.ResourceSpecifier;
 import com.atomist.tree.content.project.SimpleResourceSpecifier;
 
 import scala.Option;
-import scala.collection.JavaConversions;
+import scala.collection.JavaConverters;
 import scala.collection.Seq;
 import scala.runtime.AbstractFunction1;
 
@@ -57,25 +57,25 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
         ResourceSpecifier gav = new SimpleResourceSpecifier(artifact.group(), artifact.artifact(),
                 artifact.version());
 
-        List<ProjectGenerator> generators = JavaConversions
+        List<ProjectGenerator> generators = JavaConverters
                 .asJavaCollection(operations.generators()).stream()
                 .filter(g -> !g.name().equals("TypeDoc"))
                 .map(g -> new DecoratedProjectGenerator(g, gav, additionalPvs, source))
                 .collect(Collectors.toList());
-        List<ProjectEditor> editors = JavaConversions.asJavaCollection(operations.editors())
+        List<ProjectEditor> editors = JavaConverters.asJavaCollection(operations.editors())
                 .stream().map(g -> new DecoratedProjectEditor(g, gav, additionalPvs, source))
                 .collect(Collectors.toList());
-        List<ProjectReviewer> reviewers = JavaConversions.asJavaCollection(operations.reviewers())
+        List<ProjectReviewer> reviewers = JavaConverters.asJavaCollection(operations.reviewers())
                 .stream().map(g -> new DecoratedProjectReviewer(g, gav, additionalPvs, source))
                 .collect(Collectors.toList());
-        List<Executor> executors = JavaConversions.asJavaCollection(operations.executors()).stream()
+        List<Executor> executors = JavaConverters.asJavaCollection(operations.executors()).stream()
                 .map(g -> new DecoratedExecuter(g, gav, additionalPvs, source))
                 .collect(Collectors.toList());
 
-        return new Operations(JavaConversions.asScalaBuffer(generators).toList(),
-                JavaConversions.asScalaBuffer(editors).toList(),
-                JavaConversions.asScalaBuffer(reviewers).toList(),
-                JavaConversions.asScalaBuffer(executors).toList());
+        return new Operations(JavaConverters.asScalaBuffer(generators).toList(),
+                JavaConverters.asScalaBuffer(editors).toList(),
+                JavaConverters.asScalaBuffer(reviewers).toList(),
+                JavaConverters.asScalaBuffer(executors).toList());
     }
 
     public static class DelegatingProjectOperation<T extends ProjectOperation>
@@ -168,9 +168,9 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
                 @Override
                 public Seq<ParameterValue> parameterValues() {
                     Map<String, ParameterValue> pvs = new HashMap<>();
-                    pvs.putAll(JavaConversions.mapAsJavaMap(poa.parameterValueMap()));
+                    pvs.putAll(JavaConverters.mapAsJavaMap(poa.parameterValueMap()));
                     additionalParameters.stream().forEach(p -> pvs.put(p.getName(), p));
-                    return JavaConversions.asScalaBuffer(new ArrayList<>(pvs.values()));
+                    return JavaConverters.asScalaBuffer(new ArrayList<>(pvs.values()));
                 }
 
                 @Override
@@ -298,7 +298,7 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
                 public Object apply(DirectoryArtifact dir) {
                     // This is required to remove our maven packaging information
                     if (dir.name().equals("META-INF")) {
-                        Optional<Artifact> nonMavenArtifact = JavaConversions
+                        Optional<Artifact> nonMavenArtifact = JavaConverters
                                 .asJavaCollection(dir.artifacts()).stream()
                                 .filter(a -> !a.path().startsWith("META-INF/maven")).findAny();
                         return nonMavenArtifact.isPresent();
