@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import org.apache.commons.io.FileUtils;
+
 import com.atomist.rug.manifest.Manifest;
 import com.atomist.rug.resolver.ArtifactDescriptor.Scope;
 
@@ -53,6 +55,10 @@ public class CachingDependencyResolver implements DependencyResolver {
                 return planDependencies.get();
             }
         }
+        
+        // In any case, delete the plan file before attempting to resolve dependencies as otherwise
+        // we end up with stale dependencies in case of resolution errors.
+        FileUtils.deleteQuietly(artifactRoot);
 
         List<ArtifactDescriptor> dependencies = delegate.resolveTransitiveDependencies(artifact);
         writeDependenciesToPlan(dependencies, artifactRoot);
