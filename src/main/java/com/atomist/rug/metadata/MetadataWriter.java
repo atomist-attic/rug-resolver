@@ -7,10 +7,13 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
+import com.atomist.event.SystemEventHandler;
 import com.atomist.param.Parameter;
 import com.atomist.param.Tag;
 import com.atomist.project.ProjectOperation;
 import com.atomist.project.archive.Operations;
+import com.atomist.rug.loader.Handlers;
+import com.atomist.rug.loader.OperationsAndHandlers;
 import com.atomist.rug.resolver.ArtifactDescriptor;
 import com.atomist.source.ArtifactSource;
 import com.atomist.source.FileArtifact;
@@ -31,10 +34,10 @@ import scala.collection.JavaConverters;
 
 public class MetadataWriter {
 
-    public FileArtifact create(Operations operations, ArtifactDescriptor artifact,
-            ArtifactSource source) {
+    public FileArtifact create(OperationsAndHandlers operationsAndHandlers,
+            ArtifactDescriptor artifact, ArtifactSource source) {
         try {
-            ArchiveMetadata metadata = new ArchiveMetadata(operations, artifact);
+            ArchiveMetadata metadata = new ArchiveMetadata(operationsAndHandlers, artifact);
             String metadataJson = objectMapper().writeValueAsString(metadata);
             return new StringFileArtifact("metadata.json", ".atomist", metadataJson);
         }
@@ -82,17 +85,24 @@ public class MetadataWriter {
 
         @JsonProperty
         private List<Operation> reviewers;
+        
+        @JsonProperty
+        private List<Handler> handlers;
 
-        public ArchiveMetadata(Operations operations, ArtifactDescriptor artifact) {
-            editors = JavaConverters.asJavaCollectionConverter(operations.editors()).asJavaCollection().stream()
-                    .map(Operation::new).collect(Collectors.toList());
-            generators = JavaConverters.asJavaCollectionConverter(operations.generators()).asJavaCollection().stream()
-                    .map(Operation::new).collect(Collectors.toList());
-            executors = JavaConverters.asJavaCollectionConverter(operations.executors()).asJavaCollection().stream()
-                    .map(Operation::new).collect(Collectors.toList());
-            reviewers = JavaConverters.asJavaCollectionConverter(operations.reviewers()).asJavaCollection().stream()
-                    .map(Operation::new).collect(Collectors.toList());
-            group = artifact.group();
+        public ArchiveMetadata(OperationsAndHandlers operationsAndHandlers,
+                ArtifactDescriptor artifact) {
+            Operations operations = operationsAndHandlers.operations();
+            Handlers handlers = operationsAndHandlers.handlers();
+            this.editors = JavaConverters.asJavaCollectionConverter(operations.editors())
+                    .asJavaCollection().stream().map(Operation::new).collect(Collectors.toList());
+            this.generators = JavaConverters.asJavaCollectionConverter(operations.generators())
+                    .asJavaCollection().stream().map(Operation::new).collect(Collectors.toList());
+            this.executors = JavaConverters.asJavaCollectionConverter(operations.executors())
+                    .asJavaCollection().stream().map(Operation::new).collect(Collectors.toList());
+            this.reviewers = JavaConverters.asJavaCollectionConverter(operations.reviewers())
+                    .asJavaCollection().stream().map(Operation::new).collect(Collectors.toList());
+            this.handlers = handlers.handlers().stream().map(Handler::new).collect(Collectors.toList());
+            this.group = artifact.group();
             this.artifact = artifact.artifact();
             version = artifact.version();
         }
@@ -115,8 +125,31 @@ public class MetadataWriter {
         public Operation(ProjectOperation operation) {
             name = operation.name();
             description = operation.description();
-            parameters = JavaConverters.asJavaCollectionConverter(operation.parameters()).asJavaCollection();
+            parameters = JavaConverters.asJavaCollectionConverter(operation.parameters())
+                    .asJavaCollection();
             tags = JavaConverters.asJavaCollectionConverter(operation.tags()).asJavaCollection();
+        }
+    }
+
+    private static class Handler {
+        
+        @JsonProperty
+        private String name;
+        
+        @JsonProperty
+        private String description;
+        
+        @JsonProperty
+        private Collection<Tag> tags;
+        
+        @JsonProperty(value = "root_node")
+        private String rootNode;
+        
+        public Handler(SystemEventHandler handler) {
+            name = handler.name();
+            description = handler.description();
+            rootNode = handler.rootNodeName();
+            tags = JavaConverters.asJavaCollectionConverter(handler.tags()).asJavaCollection();
         }
     }
 

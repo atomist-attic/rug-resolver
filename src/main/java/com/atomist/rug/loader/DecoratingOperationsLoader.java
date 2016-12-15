@@ -1,5 +1,7 @@
 package com.atomist.rug.loader;
 
+import com.atomist.event.SystemEvent;
+import com.atomist.event.SystemEventHandler;
 import com.atomist.param.Parameter;
 import com.atomist.param.ParameterValue;
 import com.atomist.param.ParameterValues;
@@ -35,32 +37,44 @@ import java.util.stream.Collectors;
 import static scala.collection.JavaConverters.asJavaCollectionConverter;
 import static scala.collection.JavaConverters.asScalaBufferConverter;
 
-public class DecoratingOperationsLoader extends DefaultOperationsLoader {
+public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
 
     public DecoratingOperationsLoader(DependencyResolver resolver) {
         super(resolver);
     }
 
     @Override
+    protected List<SystemEventHandler> postProcess(ArtifactDescriptor artifact,
+            List<SystemEventHandler> handlers, ArtifactSource source) {
+        ResourceSpecifier gav = new SimpleResourceSpecifier(artifact.group(), artifact.artifact(),
+                artifact.version());
+
+        return handlers.stream().map(h -> new DecoratedSystemEventHandler(h, gav, source))
+                .collect(Collectors.toList());
+    }
+
+    @Override
     protected Operations postProcess(ArtifactDescriptor artifact, Operations operations,
-                                     ArtifactSource source) {
+            ArtifactSource source) {
         List<ParameterValue> additionalPvs = Collections.emptyList();
 
         ResourceSpecifier gav = new SimpleResourceSpecifier(artifact.group(), artifact.artifact(),
                 artifact.version());
 
-        List<ProjectGenerator> generators =
-                asJavaCollectionConverter(operations.generators()).asJavaCollection().stream()
-                .filter(g -> !g.name().equals("TypeDoc"))
+        List<ProjectGenerator> generators = asJavaCollectionConverter(operations.generators())
+                .asJavaCollection().stream().filter(g -> !g.name().equals("TypeDoc"))
                 .map(g -> new DecoratedProjectGenerator(g, gav, additionalPvs, source))
                 .collect(Collectors.toList());
-        List<ProjectEditor> editors = asJavaCollectionConverter(operations.editors()).asJavaCollection()
-                .stream().map(g -> new DecoratedProjectEditor(g, gav, additionalPvs, source))
+        List<ProjectEditor> editors = asJavaCollectionConverter(operations.editors())
+                .asJavaCollection().stream()
+                .map(g -> new DecoratedProjectEditor(g, gav, additionalPvs, source))
                 .collect(Collectors.toList());
-        List<ProjectReviewer> reviewers = asJavaCollectionConverter(operations.reviewers()).asJavaCollection()
-                .stream().map(g -> new DecoratedProjectReviewer(g, gav, additionalPvs, source))
+        List<ProjectReviewer> reviewers = asJavaCollectionConverter(operations.reviewers())
+                .asJavaCollection().stream()
+                .map(g -> new DecoratedProjectReviewer(g, gav, additionalPvs, source))
                 .collect(Collectors.toList());
-        List<Executor> executors = asJavaCollectionConverter(operations.executors()).asJavaCollection().stream()
+        List<Executor> executors = asJavaCollectionConverter(operations.executors())
+                .asJavaCollection().stream()
                 .map(g -> new DecoratedExecuter(g, gav, additionalPvs, source))
                 .collect(Collectors.toList());
 
@@ -81,7 +95,7 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
         private String sha;
 
         public DelegatingProjectOperation(T delegate, ResourceSpecifier gav,
-                                          List<ParameterValue> additionalParameters, ArtifactSource artifactSource) {
+                List<ParameterValue> additionalParameters, ArtifactSource artifactSource) {
             this.delegate = delegate;
             this.gav = gav;
             this.additionalParameters = additionalParameters;
@@ -160,9 +174,11 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
                 @Override
                 public Seq<ParameterValue> parameterValues() {
                     Map<String, ParameterValue> pvs = new HashMap<>();
-                    pvs.putAll(JavaConverters.mapAsJavaMapConverter(poa.parameterValueMap()).asJava());
+                    pvs.putAll(
+                            JavaConverters.mapAsJavaMapConverter(poa.parameterValueMap()).asJava());
                     additionalParameters.stream().forEach(p -> pvs.put(p.getName(), p));
-                    return JavaConverters.asScalaBufferConverter(new ArrayList<>(pvs.values())).asScala();
+                    return JavaConverters.asScalaBufferConverter(new ArrayList<>(pvs.values()))
+                            .asScala();
                 }
 
                 @Override
@@ -223,7 +239,7 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
             implements Executor {
 
         public DecoratedExecuter(Executor delegate, ResourceSpecifier gav,
-                                 List<ParameterValue> additionalParameters, ArtifactSource source) {
+                List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
         }
 
@@ -237,7 +253,7 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
             implements ProjectEditor {
 
         public DecoratedProjectEditor(ProjectEditor delegate, ResourceSpecifier gav,
-                                      List<ParameterValue> additionalParameters, ArtifactSource source) {
+                List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
         }
 
@@ -277,7 +293,7 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
             extends DelegatingProjectOperation<ProjectGenerator> implements ProjectGenerator {
 
         public DecoratedProjectGenerator(ProjectGenerator delegate, ResourceSpecifier gav,
-                                         List<ParameterValue> additionalParameters, ArtifactSource source) {
+                List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
         }
 
@@ -290,9 +306,10 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
                 public Object apply(DirectoryArtifact dir) {
                     // This is required to remove our maven packaging information
                     if (dir.name().equals("META-INF")) {
-                        Optional<Artifact> nonMavenArtifact = asJavaCollectionConverter(dir.artifacts())
-                                .asJavaCollection().stream()
-                                .filter(a -> !a.path().startsWith("META-INF/maven")).findAny();
+                        Optional<Artifact> nonMavenArtifact = asJavaCollectionConverter(
+                                dir.artifacts()).asJavaCollection().stream()
+                                        .filter(a -> !a.path().startsWith("META-INF/maven"))
+                                        .findAny();
                         return nonMavenArtifact.isPresent();
                     }
                     return (!dir.path().equals("META-INF/maven"));
@@ -310,13 +327,96 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
             extends DelegatingProjectOperation<ProjectReviewer> implements ProjectReviewer {
 
         public DecoratedProjectReviewer(ProjectReviewer delegate, ResourceSpecifier gav,
-                                        List<ParameterValue> additionalParameters, ArtifactSource source) {
+                List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
         }
 
         @Override
         public ReviewResult review(ArtifactSource as, ProjectOperationArguments pos) {
             return getDelegate().review(as, decorateProjectOperationArguments(pos));
+        }
+    }
+
+    private static class DecoratedSystemEventHandler implements SystemEventHandler, ProvenanceInfo {
+
+        private String repo;
+        private String branch;
+        private String sha;
+        private ResourceSpecifier gav;
+
+        private SystemEventHandler delegate;
+
+        public DecoratedSystemEventHandler(SystemEventHandler delegate, ResourceSpecifier gav,
+                ArtifactSource artifactSource) {
+            this.delegate = delegate;
+            this.gav = gav;
+            init(artifactSource);
+        }
+
+        private void init(ArtifactSource artifactSource) {
+            Optional<ProvenanceInfo> provenanceInfoOptional = new ProvenanceInfoArtifactSourceReader()
+                    .read(artifactSource);
+            if (provenanceInfoOptional.isPresent()) {
+                ProvenanceInfo provenanceInfo = provenanceInfoOptional.get();
+                repo = provenanceInfo.repo().get();
+                branch = provenanceInfo.branch().get();
+                sha = provenanceInfo.sha().get();
+            }
+        }
+
+        @Override
+        public String description() {
+            return delegate.description();
+        }
+
+        @Override
+        public void handle(SystemEvent event, ServiceSource serviceSource) {
+            delegate.handle(event, serviceSource);
+        }
+
+        @Override
+        public String name() {
+            return delegate.name();
+        }
+
+        @Override
+        public String rootNodeName() {
+            return delegate.rootNodeName();
+        }
+
+        @Override
+        public Seq<Tag> tags() {
+            return delegate.tags();
+        }
+
+        @Override
+        public Option<String> group() {
+            return Option.apply(gav.groupId());
+        }
+
+        @Override
+        public Option<String> artifact() {
+            return Option.apply(gav.artifactId());
+        }
+
+        @Override
+        public Option<String> version() {
+            return Option.apply(gav.version());
+        }
+
+        @Override
+        public Option<String> repo() {
+            return Option.apply(repo);
+        }
+
+        @Override
+        public Option<String> branch() {
+            return Option.apply(branch);
+        }
+
+        @Override
+        public Option<String> sha() {
+            return Option.apply(sha);
         }
     }
 }

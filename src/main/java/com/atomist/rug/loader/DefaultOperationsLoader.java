@@ -74,7 +74,7 @@ public class DefaultOperationsLoader implements OperationsLoader {
         dependencies = postProcessArfifactDescriptors(artifact, dependencies);
 
         List<ProjectOperation> otherOperations = new ArrayList<>();
-        ProjectOperationArchiveReader reader = archiveReader();
+        ProjectOperationArchiveReader reader = operationsReader();
 
         Operations operations = null;
         ArtifactSource source = null;
@@ -87,15 +87,17 @@ public class DefaultOperationsLoader implements OperationsLoader {
             }
             else {
                 otherOperations.addAll(asJavaCollectionConverter(
-                        loadArtifact(ad, artifactSource, reader, otherOperations).allOperations()).asJavaCollection());
+                        loadArtifact(ad, artifactSource, reader, otherOperations).allOperations())
+                                .asJavaCollection());
             }
         }
 
         if (operations == null) {
-            operations = new Operations(asScalaBufferConverter(Collections.<ProjectGenerator>emptyList()).asScala(),
-                    asScalaBufferConverter(Collections.<ProjectEditor>emptyList()).asScala(),
-                    asScalaBufferConverter(Collections.<ProjectReviewer>emptyList()).asScala(),
-                    asScalaBufferConverter(Collections.<Executor>emptyList()).asScala());
+            operations = new Operations(
+                    asScalaBufferConverter(Collections.<ProjectGenerator> emptyList()).asScala(),
+                    asScalaBufferConverter(Collections.<ProjectEditor> emptyList()).asScala(),
+                    asScalaBufferConverter(Collections.<ProjectReviewer> emptyList()).asScala(),
+                    asScalaBufferConverter(Collections.<Executor> emptyList()).asScala());
         }
 
         if (LOGGER.isInfoEnabled()) {
@@ -105,13 +107,16 @@ public class DefaultOperationsLoader implements OperationsLoader {
                     asJavaCollectionConverter(operations.editorNames()).asJavaCollection(), ", "));
             sb.append("] generators: [");
             sb.append(StringUtils.collectionToDelimitedString(
-                    asJavaCollectionConverter(operations.generatorNames()).asJavaCollection(), ", "));
+                    asJavaCollectionConverter(operations.generatorNames()).asJavaCollection(),
+                    ", "));
             sb.append("] reviewers: [");
             sb.append(StringUtils.collectionToDelimitedString(
-                    asJavaCollectionConverter(operations.reviewerNames()).asJavaCollection(), ", "));
+                    asJavaCollectionConverter(operations.reviewerNames()).asJavaCollection(),
+                    ", "));
             sb.append("] executors: [");
             sb.append(StringUtils.collectionToDelimitedString(
-                    asJavaCollectionConverter(operations.executorNames()).asJavaCollection(), ", "));
+                    asJavaCollectionConverter(operations.executorNames()).asJavaCollection(),
+                    ", "));
             sb.append("]");
             LOGGER.info(String.format("Loaded operations for %s:%s:%s: %s", artifact.group(),
                     artifact.artifact(), artifact.version(), sb.toString()));
@@ -125,12 +130,12 @@ public class DefaultOperationsLoader implements OperationsLoader {
     }
 
     protected List<ArtifactDescriptor> postProcessArfifactDescriptors(ArtifactDescriptor artifact,
-                                                                      List<ArtifactDescriptor> dependencies) {
+            List<ArtifactDescriptor> dependencies) {
         return dependencies;
     }
 
     protected Operations postProcess(ArtifactDescriptor artifact, Operations operations,
-                                     ArtifactSource source) {
+            ArtifactSource source) {
         return operations;
     }
 
@@ -154,7 +159,7 @@ public class DefaultOperationsLoader implements OperationsLoader {
     }
 
     protected Operations loadArtifact(ArtifactDescriptor artifact, ArtifactSource source,
-                                      ProjectOperationArchiveReader reader, List<ProjectOperation> otherOperations)
+            ProjectOperationArchiveReader reader, List<ProjectOperation> otherOperations)
             throws OperationsLoaderException {
         try {
             return reader.findOperations(source,
@@ -172,7 +177,7 @@ public class DefaultOperationsLoader implements OperationsLoader {
         }
     }
 
-    protected ProjectOperationArchiveReader archiveReader() {
+    protected ProjectOperationArchiveReader operationsReader() {
         return new ProjectOperationArchiveReader(DefaultAtomistConfig$.MODULE$,
                 new DefaultEvaluator(new EmptyRugFunctionRegistry()), DefaultTypeRegistry$.MODULE$);
     }
