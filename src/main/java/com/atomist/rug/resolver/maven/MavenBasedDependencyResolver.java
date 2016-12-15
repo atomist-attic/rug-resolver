@@ -257,7 +257,7 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
 
         }
         catch (DependencyCollectionException e) {
-            throw new com.atomist.rug.resolver.DependencyCollectionException(e);
+            throw new com.atomist.rug.resolver.maven.DependencyCollectionException(e);
         }
 
         return artifacts;
@@ -276,8 +276,8 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
             return rangeResult.getHighestVersion().toString();
         }
         else {
-            throw new DependencyResolverException(String
-                    .format("Unable to find any version of archive %s:%s.", groupId, artifactId),
+            throw new com.atomist.rug.resolver.maven.DependencyCollectionException(String
+                    .format("Unable to find a version of archive %s:%s.", groupId, artifactId),
                     properties.repositories());
         }
     }
