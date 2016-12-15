@@ -18,8 +18,9 @@ public class MavenProperties {
     private Map<String, Repo> repos = new HashMap<>();
     private List<Repo> pomRepos = new ArrayList<>();
     private List<String> exclusions = new ArrayList<>();
-
     private boolean offline = false;
+    private boolean cacheMetadata = true;
+    
     private String repoLocation = System.getProperty("java.io.tmpdir") + "/.m2/repository/"
             + UUID.randomUUID().toString();
     
@@ -59,6 +60,10 @@ public class MavenProperties {
     public void setOffline(boolean offline) {
         this.offline = offline;
     }
+    
+    public void setCacheMetadata(boolean cacheMetadata) {
+        this.cacheMetadata = cacheMetadata;
+    }
 
     public String getRepoLocation() {
         return repoLocation;
@@ -66,6 +71,10 @@ public class MavenProperties {
 
     public boolean isOffline() {
         return offline;
+    }
+    
+    public boolean isCacheMetadata() {
+        return cacheMetadata;
     }
 
     public static class Repo {

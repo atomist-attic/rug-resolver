@@ -109,7 +109,8 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
 
         if (logger.isInfoEnabled()) {
             logger.info(String.format("Resolving dependencies for %s:%s:%s:%s", artifact.group(),
-                    artifact.artifact(), artifact.extension().toString().toLowerCase(), artifact.version()));
+                    artifact.artifact(), artifact.extension().toString().toLowerCase(),
+                    artifact.version()));
         }
 
         RepositorySystemSession session = newSession(repoSystem, createDependencyRoot(artifact));
@@ -256,10 +257,7 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
 
         }
         catch (DependencyCollectionException e) {
-            throw new DependencyResolverException(
-                    String.format("Failed to collect dependencies for %s:%s:%s", artifact.group(),
-                            artifact.artifact(), artifact.version()),
-                    e);
+            throw new com.atomist.rug.resolver.DependencyCollectionException(e);
         }
 
         return artifacts;
@@ -332,7 +330,9 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
                 new ExclusionDependencySelector(exclusions));
 
         session.setDependencySelector(depFilter);
-        session.setUpdatePolicy(RepositoryPolicy.UPDATE_POLICY_ALWAYS);
+        if (!properties.isCacheMetadata()) {
+            session.setUpdatePolicy(RepositoryPolicy.UPDATE_POLICY_ALWAYS);
+        }
 
         if (transferListener != null) {
             session.setTransferListener(transferListener);
