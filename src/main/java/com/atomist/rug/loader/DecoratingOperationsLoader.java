@@ -1,23 +1,10 @@
 package com.atomist.rug.loader;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 import com.atomist.param.Parameter;
 import com.atomist.param.ParameterValue;
 import com.atomist.param.ParameterValues;
 import com.atomist.param.Tag;
-import com.atomist.project.Executor;
-import com.atomist.project.ProjectOperation;
-import com.atomist.project.ProjectOperationArguments;
-import com.atomist.project.ProjectOperationInfo;
-import com.atomist.project.ProvenanceInfo;
-import com.atomist.project.ProvenanceInfoArtifactSourceReader;
+import com.atomist.project.*;
 import com.atomist.project.archive.Operations;
 import com.atomist.project.common.InvalidParametersException;
 import com.atomist.project.common.MissingParametersException;
@@ -37,11 +24,16 @@ import com.atomist.source.DirectoryArtifact;
 import com.atomist.source.FileArtifact;
 import com.atomist.tree.content.project.ResourceSpecifier;
 import com.atomist.tree.content.project.SimpleResourceSpecifier;
-
 import scala.Option;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
 import scala.runtime.AbstractFunction1;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static scala.collection.JavaConverters.asJavaCollectionConverter;
+import static scala.collection.JavaConverters.asScalaBufferConverter;
 
 public class DecoratingOperationsLoader extends DefaultOperationsLoader {
 
@@ -51,31 +43,31 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
 
     @Override
     protected Operations postProcess(ArtifactDescriptor artifact, Operations operations,
-            ArtifactSource source) {
+                                     ArtifactSource source) {
         List<ParameterValue> additionalPvs = Collections.emptyList();
 
         ResourceSpecifier gav = new SimpleResourceSpecifier(artifact.group(), artifact.artifact(),
                 artifact.version());
 
-        List<ProjectGenerator> generators = JavaConverters
-                .asJavaCollection(operations.generators()).stream()
+        List<ProjectGenerator> generators =
+                asJavaCollectionConverter(operations.generators()).asJavaCollection().stream()
                 .filter(g -> !g.name().equals("TypeDoc"))
                 .map(g -> new DecoratedProjectGenerator(g, gav, additionalPvs, source))
                 .collect(Collectors.toList());
-        List<ProjectEditor> editors = JavaConverters.asJavaCollection(operations.editors())
+        List<ProjectEditor> editors = asJavaCollectionConverter(operations.editors()).asJavaCollection()
                 .stream().map(g -> new DecoratedProjectEditor(g, gav, additionalPvs, source))
                 .collect(Collectors.toList());
-        List<ProjectReviewer> reviewers = JavaConverters.asJavaCollection(operations.reviewers())
+        List<ProjectReviewer> reviewers = asJavaCollectionConverter(operations.reviewers()).asJavaCollection()
                 .stream().map(g -> new DecoratedProjectReviewer(g, gav, additionalPvs, source))
                 .collect(Collectors.toList());
-        List<Executor> executors = JavaConverters.asJavaCollection(operations.executors()).stream()
+        List<Executor> executors = asJavaCollectionConverter(operations.executors()).asJavaCollection().stream()
                 .map(g -> new DecoratedExecuter(g, gav, additionalPvs, source))
                 .collect(Collectors.toList());
 
-        return new Operations(JavaConverters.asScalaBuffer(generators).toList(),
-                JavaConverters.asScalaBuffer(editors).toList(),
-                JavaConverters.asScalaBuffer(reviewers).toList(),
-                JavaConverters.asScalaBuffer(executors).toList());
+        return new Operations(asScalaBufferConverter(generators).asScala().toList(),
+                asScalaBufferConverter(editors).asScala().toList(),
+                asScalaBufferConverter(reviewers).asScala().toList(),
+                asScalaBufferConverter(executors).asScala().toList());
     }
 
     public static class DelegatingProjectOperation<T extends ProjectOperation>
@@ -89,7 +81,7 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
         private String sha;
 
         public DelegatingProjectOperation(T delegate, ResourceSpecifier gav,
-                List<ParameterValue> additionalParameters, ArtifactSource artifactSource) {
+                                          List<ParameterValue> additionalParameters, ArtifactSource artifactSource) {
             this.delegate = delegate;
             this.gav = gav;
             this.additionalParameters = additionalParameters;
@@ -168,9 +160,9 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
                 @Override
                 public Seq<ParameterValue> parameterValues() {
                     Map<String, ParameterValue> pvs = new HashMap<>();
-                    pvs.putAll(JavaConverters.mapAsJavaMap(poa.parameterValueMap()));
+                    pvs.putAll(JavaConverters.mapAsJavaMapConverter(poa.parameterValueMap()).asJava());
                     additionalParameters.stream().forEach(p -> pvs.put(p.getName(), p));
-                    return JavaConverters.asScalaBuffer(new ArrayList<>(pvs.values()));
+                    return JavaConverters.asScalaBufferConverter(new ArrayList<>(pvs.values())).asScala();
                 }
 
                 @Override
@@ -231,7 +223,7 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
             implements Executor {
 
         public DecoratedExecuter(Executor delegate, ResourceSpecifier gav,
-                List<ParameterValue> additionalParameters, ArtifactSource source) {
+                                 List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
         }
 
@@ -245,7 +237,7 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
             implements ProjectEditor {
 
         public DecoratedProjectEditor(ProjectEditor delegate, ResourceSpecifier gav,
-                List<ParameterValue> additionalParameters, ArtifactSource source) {
+                                      List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
         }
 
@@ -285,7 +277,7 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
             extends DelegatingProjectOperation<ProjectGenerator> implements ProjectGenerator {
 
         public DecoratedProjectGenerator(ProjectGenerator delegate, ResourceSpecifier gav,
-                List<ParameterValue> additionalParameters, ArtifactSource source) {
+                                         List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
         }
 
@@ -298,8 +290,8 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
                 public Object apply(DirectoryArtifact dir) {
                     // This is required to remove our maven packaging information
                     if (dir.name().equals("META-INF")) {
-                        Optional<Artifact> nonMavenArtifact = JavaConverters
-                                .asJavaCollection(dir.artifacts()).stream()
+                        Optional<Artifact> nonMavenArtifact = asJavaCollectionConverter(dir.artifacts())
+                                .asJavaCollection().stream()
                                 .filter(a -> !a.path().startsWith("META-INF/maven")).findAny();
                         return nonMavenArtifact.isPresent();
                     }
@@ -311,7 +303,6 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
                     return true;
                 }
             });
-
         }
     }
 
@@ -319,7 +310,7 @@ public class DecoratingOperationsLoader extends DefaultOperationsLoader {
             extends DelegatingProjectOperation<ProjectReviewer> implements ProjectReviewer {
 
         public DecoratedProjectReviewer(ProjectReviewer delegate, ResourceSpecifier gav,
-                List<ParameterValue> additionalParameters, ArtifactSource source) {
+                                        List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
         }
 

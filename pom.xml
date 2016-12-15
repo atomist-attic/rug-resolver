@@ -85,7 +85,7 @@
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.module</groupId>
-			<artifactId>jackson-module-scala_2.12</artifactId>
+			<artifactId>jackson-module-scala_${scala.binary.version}</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jgit</groupId>
@@ -180,7 +180,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.scalatest</groupId>
-			<artifactId>scalatest_2.12</artifactId>
+			<artifactId>scalatest_${scala.binary.version}</artifactId>
 			<version>3.0.1</version>
 			<scope>test</scope>
 		</dependency>
@@ -279,6 +279,8 @@
 						<arg>-unchecked</arg>
 						<!-- work-around for https://issues.scala-lang.org/browse/SI-8358 -->
 						<arg>-nobootcp</arg>
+						<arg>-deprecation</arg>
+						<arg>-feature</arg>
 					</args>
 				</configuration>
 			</plugin>

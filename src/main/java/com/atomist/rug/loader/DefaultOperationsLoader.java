@@ -1,5 +1,30 @@
 package com.atomist.rug.loader;
 
+import com.atomist.project.Executor;
+import com.atomist.project.ProjectOperation;
+import com.atomist.project.archive.DefaultAtomistConfig$;
+import com.atomist.project.archive.Operations;
+import com.atomist.project.archive.ProjectOperationArchiveReader;
+import com.atomist.project.edit.ProjectEditor;
+import com.atomist.project.generate.ProjectGenerator;
+import com.atomist.project.review.ProjectReviewer;
+import com.atomist.rug.EmptyRugFunctionRegistry;
+import com.atomist.rug.RugRuntimeException;
+import com.atomist.rug.kind.DefaultTypeRegistry$;
+import com.atomist.rug.resolver.*;
+import com.atomist.rug.resolver.ArtifactDescriptor.Extension;
+import com.atomist.rug.runtime.rugdsl.DefaultEvaluator;
+import com.atomist.source.ArtifactSource;
+import com.atomist.source.file.FileSystemArtifactSource;
+import com.atomist.source.file.SimpleFileSystemArtifactSourceIdentifier;
+import com.atomist.source.file.ZipFileArtifactSourceReader;
+import com.atomist.source.file.ZipFileInput;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
+import scala.Option;
+import scala.collection.JavaConverters;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -7,32 +32,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.util.StringUtils;
-
-import com.atomist.project.ProjectOperation;
-import com.atomist.project.archive.DefaultAtomistConfig$;
-import com.atomist.project.archive.Operations;
-import com.atomist.project.archive.ProjectOperationArchiveReader;
-import com.atomist.rug.EmptyRugFunctionRegistry;
-import com.atomist.rug.RugRuntimeException;
-import com.atomist.rug.kind.DefaultTypeRegistry$;
-import com.atomist.rug.resolver.ArtifactDescriptor;
-import com.atomist.rug.resolver.ArtifactDescriptor.Extension;
-import com.atomist.rug.resolver.ArtifactDescriptorFactory;
-import com.atomist.rug.resolver.DefaultArtifactDescriptor;
-import com.atomist.rug.resolver.DependencyResolver;
-import com.atomist.rug.resolver.DependencyResolverException;
-import com.atomist.rug.runtime.rugdsl.DefaultEvaluator;
-import com.atomist.source.ArtifactSource;
-import com.atomist.source.file.FileSystemArtifactSource;
-import com.atomist.source.file.SimpleFileSystemArtifactSourceIdentifier;
-import com.atomist.source.file.ZipFileArtifactSourceReader;
-import com.atomist.source.file.ZipFileInput;
-
-import scala.Option;
-import scala.collection.JavaConverters;
+import static scala.collection.JavaConverters.asJavaCollectionConverter;
+import static scala.collection.JavaConverters.asScalaBufferConverter;
 
 public class DefaultOperationsLoader implements OperationsLoader {
 
@@ -92,26 +93,26 @@ public class DefaultOperationsLoader implements OperationsLoader {
         }
 
         if (operations == null) {
-            operations = new Operations(JavaConverters.asScalaBuffer(Collections.emptyList()),
-                    JavaConverters.asScalaBuffer(Collections.emptyList()),
-                    JavaConverters.asScalaBuffer(Collections.emptyList()),
-                    JavaConverters.asScalaBuffer(Collections.emptyList()));
+            operations = new Operations(asScalaBufferConverter(Collections.<ProjectGenerator>emptyList()).asScala(),
+                    asScalaBufferConverter(Collections.<ProjectEditor>emptyList()).asScala(),
+                    asScalaBufferConverter(Collections.<ProjectReviewer>emptyList()).asScala(),
+                    asScalaBufferConverter(Collections.<Executor>emptyList()).asScala());
         }
 
         if (LOGGER.isInfoEnabled()) {
             StringBuilder sb = new StringBuilder();
             sb.append("editors: [");
             sb.append(StringUtils.collectionToDelimitedString(
-                    JavaConverters.asJavaCollection(operations.editorNames()), ", "));
+                    asJavaCollectionConverter(operations.editorNames()).asJavaCollection(), ", "));
             sb.append("] generators: [");
             sb.append(StringUtils.collectionToDelimitedString(
-                    JavaConverters.asJavaCollection(operations.generatorNames()), ", "));
+                    asJavaCollectionConverter(operations.generatorNames()).asJavaCollection(), ", "));
             sb.append("] reviewers: [");
             sb.append(StringUtils.collectionToDelimitedString(
-                    JavaConverters.asJavaCollection(operations.reviewerNames()), ", "));
+                    asJavaCollectionConverter(operations.reviewerNames()).asJavaCollection(), ", "));
             sb.append("] executors: [");
             sb.append(StringUtils.collectionToDelimitedString(
-                    JavaConverters.asJavaCollection(operations.executorNames()), ", "));
+                    asJavaCollectionConverter(operations.executorNames()).asJavaCollection(), ", "));
             sb.append("]");
             LOGGER.info(String.format("Loaded operations for %s:%s:%s: %s", artifact.group(),
                     artifact.artifact(), artifact.version(), sb.toString()));
@@ -125,18 +126,17 @@ public class DefaultOperationsLoader implements OperationsLoader {
     }
 
     protected List<ArtifactDescriptor> postProcessArfifactDescriptors(ArtifactDescriptor artifact,
-            List<ArtifactDescriptor> dependencies) {
+                                                                      List<ArtifactDescriptor> dependencies) {
         return dependencies;
     }
 
     protected Operations postProcess(ArtifactDescriptor artifact, Operations operations,
-            ArtifactSource source) {
+                                     ArtifactSource source) {
         return operations;
     }
 
     protected ArtifactSource createArtifactSource(ArtifactDescriptor artifact) {
         try {
-
             File archiveRoot = new File(artifact.uri());
             if (archiveRoot.isFile()) {
                 return ZipFileArtifactSourceReader
@@ -155,12 +155,12 @@ public class DefaultOperationsLoader implements OperationsLoader {
     }
 
     protected Operations loadArtifact(ArtifactDescriptor artifact, ArtifactSource source,
-            ProjectOperationArchiveReader reader, List<ProjectOperation> otherOperations)
+                                      ProjectOperationArchiveReader reader, List<ProjectOperation> otherOperations)
             throws OperationsLoaderException {
         try {
             return reader.findOperations(source,
                     Option.apply(artifact.group() + "." + artifact.artifact()),
-                    JavaConverters.asScalaBuffer(otherOperations).toList(),
+                    asScalaBufferConverter(otherOperations).asScala().toList(),
                     reader.findOperations$default$4());
         }
         catch (RugRuntimeException e) {

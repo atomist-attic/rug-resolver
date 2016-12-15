@@ -64,52 +64,59 @@ public class MetadataWriter {
 
         @JsonProperty
         private String group;
+
         @JsonProperty
         private String artifact;
+
         @JsonProperty
         private String version;
 
         @JsonProperty
         private List<Operation> editors;
+
         @JsonProperty
         private List<Operation> generators;
+
         @JsonProperty
         private List<Operation> executors;
+
         @JsonProperty
         private List<Operation> reviewers;
 
         public ArchiveMetadata(Operations operations, ArtifactDescriptor artifact) {
-            this.editors = JavaConverters.asJavaCollection(operations.editors()).stream()
-                    .map(e -> new Operation(e)).collect(Collectors.toList());
-            this.generators = JavaConverters.asJavaCollection(operations.generators()).stream()
-                    .map(e -> new Operation(e)).collect(Collectors.toList());
-            this.executors = JavaConverters.asJavaCollection(operations.executors()).stream()
-                    .map(e -> new Operation(e)).collect(Collectors.toList());
-            this.reviewers = JavaConverters.asJavaCollection(operations.reviewers()).stream()
-                    .map(e -> new Operation(e)).collect(Collectors.toList());
-            this.group = artifact.group();
+            editors = JavaConverters.asJavaCollectionConverter(operations.editors()).asJavaCollection().stream()
+                    .map(Operation::new).collect(Collectors.toList());
+            generators = JavaConverters.asJavaCollectionConverter(operations.generators()).asJavaCollection().stream()
+                    .map(Operation::new).collect(Collectors.toList());
+            executors = JavaConverters.asJavaCollectionConverter(operations.executors()).asJavaCollection().stream()
+                    .map(Operation::new).collect(Collectors.toList());
+            reviewers = JavaConverters.asJavaCollectionConverter(operations.reviewers()).asJavaCollection().stream()
+                    .map(Operation::new).collect(Collectors.toList());
+            group = artifact.group();
             this.artifact = artifact.artifact();
-            this.version = artifact.version();
+            version = artifact.version();
         }
-
     }
 
     private static class Operation {
 
         @JsonProperty
         private String name;
+
         @JsonProperty
         private String description;
+
         @JsonProperty
         private Collection<Parameter> parameters;
+
         @JsonProperty
         private Collection<Tag> tags;
 
         public Operation(ProjectOperation operation) {
-            this.name = operation.name();
-            this.description = operation.description();
-            this.parameters = JavaConverters.asJavaCollection(operation.parameters());
-            this.tags = JavaConverters.asJavaCollection(operation.tags());
+            name = operation.name();
+            description = operation.description();
+            parameters = JavaConverters.asJavaCollectionConverter(operation.parameters()).asJavaCollection();
+            tags = JavaConverters.asJavaCollectionConverter(operation.tags()).asJavaCollection();
         }
     }
 
@@ -129,7 +136,6 @@ public class MetadataWriter {
     public class MetadataModule extends SimpleModule {
 
         public MetadataModule() {
-            super();
             addSerializer(Tag.class, new TagSerializer());
         }
     }
