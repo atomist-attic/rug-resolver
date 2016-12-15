@@ -16,7 +16,8 @@ public class DependencyCollectionException extends DependencyResolverException {
 
     public DependencyCollectionException(
             org.eclipse.aether.collection.DependencyCollectionException e) {
-        super(getSource(e.getMessage(), e.getResult()), e);
+        super(getSource(e.getMessage(), e.getResult()),
+                e.getResult().getRequest().getRepositories(), e);
     }
 
     private static String getSource(String message, CollectResult result) {
@@ -43,7 +44,7 @@ public class DependencyCollectionException extends DependencyResolverException {
                     }
                     indent = indent + "  ";
                 }
-                return sb.append("\n").toString();
+                return sb.toString();
             }
         }
         else if (message.startsWith("Failed to read artifact descriptor for ")) {

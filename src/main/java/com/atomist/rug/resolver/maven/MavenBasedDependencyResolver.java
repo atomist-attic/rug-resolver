@@ -276,8 +276,9 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
             return rangeResult.getHighestVersion().toString();
         }
         else {
-            throw new DependencyResolverException(
-                    String.format("No version found for %s:%s", groupId, artifactId));
+            throw new DependencyResolverException(String
+                    .format("Unable to find any version of archive %s:%s.", groupId, artifactId),
+                    properties.repositories());
         }
     }
 
