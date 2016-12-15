@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 import scala.Option;
-import scala.collection.JavaConverters;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -87,8 +86,8 @@ public class DefaultOperationsLoader implements OperationsLoader {
                 source = artifactSource;
             }
             else {
-                otherOperations.addAll(JavaConverters.asJavaCollection(
-                        loadArtifact(ad, artifactSource, reader, otherOperations).allOperations()));
+                otherOperations.addAll(asJavaCollectionConverter(
+                        loadArtifact(ad, artifactSource, reader, otherOperations).allOperations()).asJavaCollection());
             }
         }
 
