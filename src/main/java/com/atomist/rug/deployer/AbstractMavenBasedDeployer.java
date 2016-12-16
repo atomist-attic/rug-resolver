@@ -22,9 +22,9 @@ import org.springframework.util.Assert;
 
 import com.atomist.project.ProvenanceInfo;
 import com.atomist.project.ProvenanceInfoArtifactSourceWriter;
-import com.atomist.project.archive.Operations;
 import com.atomist.rug.compiler.typescript.TypeScriptCompiler;
 import com.atomist.rug.compiler.typescript.TypeScriptCompilerContext;
+import com.atomist.rug.loader.OperationsAndHandlers;
 import com.atomist.rug.manifest.Manifest;
 import com.atomist.rug.manifest.ManifestFactory;
 import com.atomist.rug.manifest.ManifestPomWriter;
@@ -48,7 +48,7 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
     public AbstractMavenBasedDeployer(String localRespository) {
         this.localRepository = localRespository;
     }
-    
+
     @Override
     public void registerEventListener(DeployerEventListener listener) {
         Assert.notNull(listener);
@@ -56,8 +56,8 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
     }
 
     @Override
-    public void deploy(Operations operations, ArtifactSource source, ArtifactDescriptor artifact,
-            File root) throws IOException {
+    public void deploy(OperationsAndHandlers operationsAndHandlers, ArtifactSource source,
+            ArtifactDescriptor artifact, File root) throws IOException {
 
         String zipFileName = artifact.artifact() + "-" + artifact.version() + "."
                 + artifact.extension().toString().toLowerCase();
@@ -65,7 +65,7 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
 
         Manifest manifest = ManifestFactory.read(source);
         manifest.setVersion(artifact.version());
-        source = generateMetadata(operations, artifact, source, manifest);
+        source = generateMetadata(operationsAndHandlers, artifact, source, manifest);
         source = compileTypeScript(artifact, source);
 
         writeArtifactSourceToZip(archive, source);
@@ -87,12 +87,12 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
         doWithRepositorySession(system, session, source, manifest, zip, pom, metadata);
     }
 
-    protected ArtifactSource generateMetadata(Operations operations, ArtifactDescriptor artifact,
-            ArtifactSource source, Manifest manifest) {
+    protected ArtifactSource generateMetadata(OperationsAndHandlers operationsAndHandlers,
+            ArtifactDescriptor artifact, ArtifactSource source, Manifest manifest) {
         listener.metadataGenerationStarted();
         source = writePomAndManifest(artifact, source, manifest);
         source = writeProvenanceInfo(getProvenanceInfo(), source);
-        source = writeMetadata(operations, artifact, source);
+        source = writeMetadata(operationsAndHandlers, artifact, source);
         listener.metadataGenerationFinished();
         return source;
     }
@@ -142,14 +142,14 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
                 new SimpleSourceUpdateInfo(zipFile.getName()));
     }
 
-    private ArtifactSource writeMetadata(Operations operations,
-            ArtifactDescriptor artifact, ArtifactSource source) {
-        FileArtifact metadataFile = new MetadataWriter().create(operations, artifact, source);
-        
+    private ArtifactSource writeMetadata(OperationsAndHandlers operationsAndHandlers, ArtifactDescriptor artifact,
+            ArtifactSource source) {
+        FileArtifact metadataFile = new MetadataWriter().create(operationsAndHandlers, artifact, source);
+
         ArtifactSource result = source.plus(metadataFile);
         listener.metadataFileGenerated(metadataFile);
         return result;
-        
+
     }
 
     private File writeMetadataFile(ArtifactSource source, ArtifactDescriptor artifact,
@@ -191,8 +191,8 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
         return pomFile;
     }
 
-    private ArtifactSource writePomAndManifest(ArtifactDescriptor artifact,
-            ArtifactSource source, Manifest manifest) {
+    private ArtifactSource writePomAndManifest(ArtifactDescriptor artifact, ArtifactSource source,
+            Manifest manifest) {
         String manifestContents = new ManifestWriter().write(manifest);
         String manifestPomContents = new ManifestPomWriter().write(manifest, artifact);
 
@@ -200,7 +200,7 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
                 "META-INF/maven/" + artifact.group() + "/" + artifact.artifact(),
                 manifestPomContents);
         source = source.plus(pomArtifact);
-        
+
         listener.metadataFileGenerated(pomArtifact);
 
         FileArtifact manifestArtifact = new StringFileArtifact("manifest.yml", ".atomist",
@@ -218,7 +218,7 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
         });
 
         listener.metadataFileGenerated(manifestArtifact);
-        
+
         return result;
     }
 
