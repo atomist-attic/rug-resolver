@@ -1,9 +1,15 @@
-package com.atomist.rug.resolver;
+package com.atomist.rug.resolver.maven;
+
+import java.util.Collections;
+import java.util.List;
 
 import org.apache.commons.lang3.SystemUtils;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.collection.CollectRequest;
 import org.eclipse.aether.collection.CollectResult;
+import org.eclipse.aether.repository.RemoteRepository;
+
+import com.atomist.rug.resolver.DependencyResolverException;
 
 public class DependencyCollectionException extends DependencyResolverException {
 
@@ -14,17 +20,28 @@ public class DependencyCollectionException extends DependencyResolverException {
 
     private static final long serialVersionUID = -5843449884566599662L;
 
+    private List<RemoteRepository> remoteRepositories = Collections.emptyList();
+    private String detailMessage = null;
+    private ErrorType type = null;
+
     public DependencyCollectionException(
             org.eclipse.aether.collection.DependencyCollectionException e) {
-        super(getSource(e.getMessage(), e.getResult()),
-                e.getResult().getRequest().getRepositories(), e);
+        super(e.getMessage(), e);
+        this.remoteRepositories = e.getResult().getRequest().getRepositories();
+        getSource(e.getMessage(), e.getResult());
     }
 
-    private static String getSource(String message, CollectResult result) {
+    public DependencyCollectionException(String message,
+            List<RemoteRepository> remoteRepositories) {
+        super(message);
+        this.remoteRepositories = remoteRepositories;
+    }
+
+    private void getSource(String message, CollectResult result) {
         if (message.startsWith("Failed to collect dependencies at ")) {
 
             StringBuilder sb = new StringBuilder();
-            sb.append("Failed to resolve and download dependencies:");
+            sb.append("Failed to resolve or download dependencies:");
 
             message = message.substring("Failed to collect dependencies at ".length());
             String[] artifacts = message.split(" -> ");
@@ -44,7 +61,8 @@ public class DependencyCollectionException extends DependencyResolverException {
                     }
                     indent = indent + "  ";
                 }
-                return sb.toString();
+                this.type = ErrorType.DEPENDENCY_ERROR;
+                this.detailMessage = sb.toString();
             }
         }
         else if (message.startsWith("Failed to read artifact descriptor for ")) {
@@ -57,11 +75,27 @@ public class DependencyCollectionException extends DependencyResolverException {
                 artifact = request.getRootArtifact();
             }
             if (artifact != null) {
-                return String.format("Could not find requested archive %s:%s:%s:%s.",
+                this.type = ErrorType.ROOT_ARTIFACT_ERROR;
+                this.detailMessage = String.format("Could not find requested archive %s:%s:%s:%s.",
                         artifact.getGroupId(), artifact.getArtifactId(), artifact.getExtension(),
                         artifact.getVersion());
             }
         }
-        return message;
+    }
+
+    public ErrorType getType() {
+        return type;
+    }
+
+    public String getDetailMessage() {
+        return detailMessage;
+    }
+
+    public List<RemoteRepository> getRemoteRepositories() {
+        return remoteRepositories;
+    }
+
+    public enum ErrorType {
+        DEPENDENCY_ERROR, ROOT_ARTIFACT_ERROR
     }
 }

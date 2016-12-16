@@ -1,5 +1,19 @@
 package com.atomist.rug.loader;
 
+import static scala.collection.JavaConverters.asJavaCollectionConverter;
+import static scala.collection.JavaConverters.asScalaBufferConverter;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
+
 import com.atomist.project.Executor;
 import com.atomist.project.ProjectOperation;
 import com.atomist.project.archive.DefaultAtomistConfig$;
@@ -11,28 +25,22 @@ import com.atomist.project.review.ProjectReviewer;
 import com.atomist.rug.EmptyRugFunctionRegistry;
 import com.atomist.rug.RugRuntimeException;
 import com.atomist.rug.kind.DefaultTypeRegistry$;
-import com.atomist.rug.resolver.*;
+import com.atomist.rug.resolver.ArtifactDescriptor;
 import com.atomist.rug.resolver.ArtifactDescriptor.Extension;
+import com.atomist.rug.resolver.ArtifactDescriptorFactory;
+import com.atomist.rug.resolver.DefaultArtifactDescriptor;
+import com.atomist.rug.resolver.DependencyResolver;
+import com.atomist.rug.resolver.DependencyResolverException;
 import com.atomist.rug.runtime.rugdsl.DefaultEvaluator;
 import com.atomist.source.ArtifactSource;
+import com.atomist.source.FileArtifact;
 import com.atomist.source.file.FileSystemArtifactSource;
 import com.atomist.source.file.SimpleFileSystemArtifactSourceIdentifier;
 import com.atomist.source.file.ZipFileArtifactSourceReader;
 import com.atomist.source.file.ZipFileInput;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.util.StringUtils;
+
 import scala.Option;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import static scala.collection.JavaConverters.asJavaCollectionConverter;
-import static scala.collection.JavaConverters.asScalaBufferConverter;
+import scala.runtime.AbstractFunction1;
 
 public class DefaultOperationsLoader implements OperationsLoader {
 
@@ -165,7 +173,12 @@ public class DefaultOperationsLoader implements OperationsLoader {
             return reader.findOperations(source,
                     Option.apply(artifact.group() + "." + artifact.artifact()),
                     asScalaBufferConverter(otherOperations).asScala().toList(),
-                    reader.findOperations$default$4());
+                    new AbstractFunction1<FileArtifact, Object>() {
+                        @Override
+                        public Object apply(FileArtifact artifact) {
+                            return artifact.path().startsWith(".atomist/handlers");
+                        }
+                    });
         }
         catch (RugRuntimeException e) {
             LOGGER.error(String.format("Failed to load Rug archive for %s:%s:%s", artifact.group(),
