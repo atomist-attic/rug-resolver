@@ -6,24 +6,50 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
+import org.eclipse.aether.util.version.GenericVersionScheme;
+import org.eclipse.aether.version.InvalidVersionSpecificationException;
+import org.eclipse.aether.version.Version;
+import org.eclipse.aether.version.VersionScheme;
 
 import com.atomist.rug.manifest.Manifest;
 import com.atomist.rug.resolver.ArtifactDescriptor.Scope;
 
+/**
+ * {@link DependencyResolver} that adds caching semantics on top of a wrapped
+ * {@link DependencyResolver} to speed up repeated resolution attempts.
+ * </p>
+ * This implementation caches resolution results for calls to
+ * {@link #resolveTransitiveDependencies(ArtifactDescriptor)} and
+ * {@link #resolveVersion(ArtifactDescriptor)} for up to two hours after which a re-resolution is
+ * attempted again.
+ * </p>
+ * In case a <code>package.json</code> or <code>manifest.yml</code> is changed, the cached resolution
+ * result will get discarded and a new resolution is triggered.
+ * @author cdupuis
+ */
 public class CachingDependencyResolver implements DependencyResolver {
 
     // Name of the resolver plan
     private static final String LOCAL_PLAN_FILE_NAME = "_local_resolver.plan";
     private static final String PLAN_FILE_NAME = "_resolver.plan";
-    // Default timeout 1 hour
-    private static final long TIMEOUT = 1000 * 60 * 60;
+    private static final String META_DATA_FILE_NAME = "maven-metadata-";
+    private static final String META_DATA_FILE_EXT = ".xml";
+    private static final String LATEST_PATTERN = ".*<latest>(.*)<\\/latest>.*";
+
+    // Default timeout 2 hours
+    private static final long TIMEOUT = 1000 * 60 * 60 * 2;
 
     private DependencyResolver delegate;
     private String repoHome;
@@ -55,7 +81,7 @@ public class CachingDependencyResolver implements DependencyResolver {
                 return planDependencies.get();
             }
         }
-        
+
         // In any case, delete the plan file before attempting to resolve dependencies as otherwise
         // we end up with stale dependencies in case of resolution errors.
         FileUtils.deleteQuietly(artifactRoot);
@@ -67,15 +93,21 @@ public class CachingDependencyResolver implements DependencyResolver {
 
     @Override
     public String resolveVersion(ArtifactDescriptor artifact) throws DependencyResolverException {
+        if ("latest".equals(artifact.version())) {
+            Optional<Version> version = latestVersion(artifact);
+            if (version.isPresent()) {
+                return version.get().toString();
+            }
+        }
         return delegate.resolveVersion(artifact);
     }
 
     protected boolean isOutdated(ArtifactDescriptor artifact, File file) {
         if (artifact instanceof LocalArtifactDescriptor) {
             File manifest = new File(new File(artifact.uri()),
-                    Manifest.ATOMIST_ROOT + "/" + Manifest.FILE_NAME);
+                    Manifest.ATOMIST_ROOT + File.separator + Manifest.FILE_NAME);
             File packageJson = new File(new File(artifact.uri()),
-                    Manifest.ATOMIST_ROOT + "/package.json");
+                    Manifest.ATOMIST_ROOT + File.separator + "package.json");
             return manifest.lastModified() > file.lastModified()
                     || packageJson.lastModified() > file.lastModified();
         }
@@ -148,6 +180,57 @@ public class CachingDependencyResolver implements DependencyResolver {
             // Something went wrong, just delete the plan file
             artifactRoot.delete();
         }
+    }
+
+    private Optional<Version> latestVersion(ArtifactDescriptor artifact) {
+        File repoRoot = new File(repoHome);
+        File artifactRoot = new File(repoRoot, artifact.group().replace(".", File.separator)
+                + File.separator + artifact.artifact());
+        if (artifactRoot.exists()) {
+            List<String> versions = Arrays
+                    .stream(artifactRoot.listFiles(
+                            f -> f.isFile() && f.getName().startsWith(META_DATA_FILE_NAME)
+                                    && f.getName().endsWith(META_DATA_FILE_EXT)
+                                    && !isOutdated(artifact, f)))
+                    .map(f -> readLatestVersion(f)).filter(v -> v != null)
+                    .collect(Collectors.toList());
+
+            return latestVersion(versions);
+        }
+        else {
+            return Optional.empty();
+        }
+    }
+
+    private String readLatestVersion(File file) {
+        Pattern pattern = Pattern.compile(LATEST_PATTERN);
+        try (InputStream is = new FileInputStream(file)) {
+            if (is != null) {
+                BufferedReader in = new BufferedReader(new InputStreamReader(is));
+                String line;
+                while ((line = in.readLine()) != null) {
+                    Matcher matcher = pattern.matcher(line);
+                    if (matcher.matches()) {
+                        return matcher.group(1);
+                    }
+                }
+            }
+        }
+        catch (IOException e) {
+        }
+        return null;
+    }
+
+    private Optional<Version> latestVersion(List<String> versions) {
+        VersionScheme scheme = new GenericVersionScheme();
+        return versions.stream().map(v -> {
+            try {
+                return scheme.parseVersion(v);
+            }
+            catch (InvalidVersionSpecificationException e) {
+                return null;
+            }
+        }).filter(v -> v != null).sorted((v1, v2) -> v1.compareTo(v2)).findFirst();
     }
 
 }
