@@ -21,11 +21,17 @@ public class RepositoryDetailsProvider {
     public Optional<RepositoryDetails> readDetails(File projectRoot) throws IOException {
         FileRepositoryBuilder builder = new FileRepositoryBuilder();
         try (Repository repository = builder.readEnvironment().findGitDir().build()) {
-            if (repository.getDirectory() == null) {
-                return null;
+            // Verify that we are in a git repository and have a branch
+            if (repository.getDirectory() == null && repository.getFullBranch() == null) {
+                return Optional.empty();
             }
-
+            
+            // Verify that there is a commit in the repository
             ObjectId lastCommit = repository.resolve(repository.getFullBranch());
+            if (lastCommit == null) {
+                return Optional.empty();
+            }
+            
             String sha = lastCommit.abbreviate(7).name();
             String url = repository.getConfig().getString("remote", "origin", "url");
             if (url != null) {
