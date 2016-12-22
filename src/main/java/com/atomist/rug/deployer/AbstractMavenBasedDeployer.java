@@ -22,8 +22,6 @@ import org.springframework.util.Assert;
 
 import com.atomist.project.ProvenanceInfo;
 import com.atomist.project.ProvenanceInfoArtifactSourceWriter;
-import com.atomist.rug.compiler.typescript.TypeScriptCompiler;
-import com.atomist.rug.compiler.typescript.TypeScriptCompilerContext;
 import com.atomist.rug.loader.OperationsAndHandlers;
 import com.atomist.rug.manifest.Manifest;
 import com.atomist.rug.manifest.ManifestFactory;
@@ -66,7 +64,6 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
         Manifest manifest = ManifestFactory.read(source);
         manifest.setVersion(artifact.version());
         source = generateMetadata(operationsAndHandlers, artifact, source, manifest);
-        source = compileTypeScript(artifact, source);
 
         writeArtifactSourceToZip(archive, source);
         File pomFile = writePom(manifest, artifact, root);
@@ -95,21 +92,6 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
         source = writeMetadata(operationsAndHandlers, artifact, source);
         listener.metadataGenerationFinished();
         return source;
-    }
-
-    protected ArtifactSource compileTypeScript(ArtifactDescriptor artifact, ArtifactSource source) {
-        listener.compilationStarted();
-        TypeScriptCompilerContext compilerContext = new TypeScriptCompilerContext();
-        try {
-            compilerContext.init();
-            TypeScriptCompiler compiler = compilerContext.compiler();
-            ArtifactSource result = compiler.compile(source);
-            listener.compilationFinished(result.deltaFrom(source));
-            return result;
-        }
-        finally {
-            compilerContext.shutdown();
-        }
     }
 
     protected abstract void doWithRepositorySession(RepositorySystem system,

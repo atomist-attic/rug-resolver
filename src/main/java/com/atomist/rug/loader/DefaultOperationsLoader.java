@@ -52,13 +52,14 @@ public class DefaultOperationsLoader implements OperationsLoader {
         this.resolver = resolver;
     }
 
-    public final Operations load(String group, String artifact, String version)
-            throws OperationsLoaderException {
-        return load(new DefaultArtifactDescriptor(group, artifact, version, Extension.ZIP));
+    public final Operations load(String group, String artifact, String version,
+            ArtifactSource source) throws OperationsLoaderException {
+        return load(new DefaultArtifactDescriptor(group, artifact, version, Extension.ZIP), source);
     }
 
     @Override
-    public final Operations load(ArtifactDescriptor artifact) throws OperationsLoaderException {
+    public final Operations load(ArtifactDescriptor artifact, ArtifactSource source)
+            throws OperationsLoaderException {
 
         String version = null;
         List<ArtifactDescriptor> dependencies;
@@ -85,15 +86,13 @@ public class DefaultOperationsLoader implements OperationsLoader {
         ProjectOperationArchiveReader reader = operationsReader();
 
         Operations operations = null;
-        ArtifactSource source = null;
         for (ArtifactDescriptor ad : dependencies) {
-            ArtifactSource artifactSource = createArtifactSource(ad);
             if (ad.match(artifact.group(), artifact.artifact(), artifact.version(),
                     Extension.ZIP)) {
-                operations = loadArtifact(ad, artifactSource, reader, otherOperations);
-                source = artifactSource;
+                operations = loadArtifact(ad, source, reader, otherOperations);
             }
             else {
+                ArtifactSource artifactSource = createArtifactSource(ad);
                 otherOperations.addAll(asJavaCollectionConverter(
                         loadArtifact(ad, artifactSource, reader, otherOperations).allOperations())
                                 .asJavaCollection());

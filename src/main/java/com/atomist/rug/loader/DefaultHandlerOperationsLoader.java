@@ -43,15 +43,16 @@ public class DefaultHandlerOperationsLoader extends DefaultOperationsLoader
 
     @Override
     public Handlers loadHandlers(String teamId, String group, String artifact, String version,
-            MessageBuilder builder, TreeMaterializer treeMaterializer)
+            ArtifactSource source, MessageBuilder builder, TreeMaterializer treeMaterializer)
             throws OperationsLoaderException {
         return loadHandlers(teamId, new DefaultArtifactDescriptor(group, artifact, version,
-                ArtifactDescriptor.Extension.ZIP), builder, treeMaterializer);
+                ArtifactDescriptor.Extension.ZIP), source, builder, treeMaterializer);
     }
 
     @Override
-    public Handlers loadHandlers(String teamId, ArtifactDescriptor artifact, MessageBuilder builder,
-            TreeMaterializer treeMaterializer) throws OperationsLoaderException {
+    public Handlers loadHandlers(String teamId, ArtifactDescriptor artifact, ArtifactSource source,
+            MessageBuilder builder, TreeMaterializer treeMaterializer)
+            throws OperationsLoaderException {
         String version = null;
         List<ArtifactDescriptor> dependencies = null;
 
@@ -78,16 +79,14 @@ public class DefaultHandlerOperationsLoader extends DefaultOperationsLoader
         ProjectOperationArchiveReader reader = operationsReader();
 
         List<SystemEventHandler> handlers = null;
-        ArtifactSource source = null;
         for (ArtifactDescriptor ad : dependencies) {
-            ArtifactSource artifactSource = createArtifactSource(ad);
             if (ad.match(artifact.group(), artifact.artifact(), artifact.version(),
                     ArtifactDescriptor.Extension.ZIP)) {
-                handlers = loadArtifact(teamId, ad, artifactSource, handlerReader, otherOperations,
+                handlers = loadArtifact(teamId, ad, source, handlerReader, otherOperations,
                         builder);
-                source = artifactSource;
             }
             else {
+                ArtifactSource artifactSource = createArtifactSource(ad);
                 otherOperations.addAll(JavaConversions.asJavaCollection(
                         loadArtifact(ad, artifactSource, reader, otherOperations).allOperations()));
             }
