@@ -35,7 +35,8 @@ import com.atomist.rug.resolver.ArtifactDescriptor.Scope;
  * {@link #resolveVersion(ArtifactDescriptor)} for up to two hours after which a re-resolution is
  * attempted again.
  * </p>
- * In case a <code>package.json</code> or <code>manifest.yml</code> is changed, the cached resolution
+ * In case a <code>package.json</code> or <code>manifest.yml</code> is changed, the cached
+ * resolution
  * result will get discarded and a new resolution is triggered.
  * @author cdupuis
  */
@@ -46,7 +47,7 @@ public class CachingDependencyResolver implements DependencyResolver {
     private static final String PLAN_FILE_NAME = "_resolver.plan";
     private static final String META_DATA_FILE_NAME = "maven-metadata-";
     private static final String META_DATA_FILE_EXT = ".xml";
-    private static final String LATEST_PATTERN = ".*<latest>(.*)<\\/latest>.*";
+    private static final String LATEST_PATTERN = ".*<release>(.*)<\\/release>.*";
 
     // Default timeout 2 hours
     private static final long TIMEOUT = 1000 * 60 * 60 * 2;
@@ -187,13 +188,20 @@ public class CachingDependencyResolver implements DependencyResolver {
         File artifactRoot = new File(repoRoot, artifact.group().replace(".", File.separator)
                 + File.separator + artifact.artifact());
         if (artifactRoot.exists()) {
-            List<String> versions = Arrays
-                    .stream(artifactRoot.listFiles(
-                            f -> f.isFile() && f.getName().startsWith(META_DATA_FILE_NAME)
-                                    && f.getName().endsWith(META_DATA_FILE_EXT)
-                                    && !isOutdated(artifact, f)))
-                    .map(f -> readLatestVersion(f)).filter(v -> v != null)
-                    .collect(Collectors.toList());
+
+            File[] metadataFiles = artifactRoot
+                    .listFiles(f -> f.isFile() && f.getName().startsWith(META_DATA_FILE_NAME)
+                            && f.getName().endsWith(META_DATA_FILE_EXT));
+            
+            // If one file is outdated discard the full set
+            for (File metadataFile : metadataFiles) {
+                if (isOutdated(artifact, metadataFile)) {
+                    return Optional.empty();
+                }
+            }
+
+            List<String> versions = Arrays.stream(metadataFiles).map(f -> readLatestVersion(f))
+                    .filter(v -> v != null).collect(Collectors.toList());
 
             return latestVersion(versions);
         }
