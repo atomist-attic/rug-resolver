@@ -238,7 +238,7 @@ public class CachingDependencyResolver implements DependencyResolver {
             catch (InvalidVersionSpecificationException e) {
                 return null;
             }
-        }).filter(v -> v != null).sorted((v1, v2) -> v1.compareTo(v2)).findFirst();
+        }).filter(v -> v != null).sorted((v1, v2) -> -1 * v1.compareTo(v2)).findFirst();
     }
 
 }
