@@ -12,14 +12,7 @@ public abstract class ManifestFactory {
                 return manifest;
             }
         }
-        else if (source.findFile(".atomist/package.json").isDefined()) {
-            Manifest manifest = new PackageJsonToManifestReader().read(source);
-            if (manifest != null) {
-                return manifest;
-            }
-        }
-
-        throw new ManifestException("No manifest.yml or package.json found in .atomist folder");
+        throw new ManifestException("No manifest.yml found in .atomist folder");
     }
 
 }
