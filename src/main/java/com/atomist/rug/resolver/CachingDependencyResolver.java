@@ -6,22 +6,13 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
-import org.eclipse.aether.util.version.GenericVersionScheme;
-import org.eclipse.aether.version.InvalidVersionSpecificationException;
-import org.eclipse.aether.version.Version;
-import org.eclipse.aether.version.VersionScheme;
 
 import com.atomist.rug.manifest.Manifest;
 import com.atomist.rug.resolver.ArtifactDescriptor.Scope;
@@ -45,9 +36,7 @@ public class CachingDependencyResolver implements DependencyResolver {
     // Name of the resolver plan
     private static final String LOCAL_PLAN_FILE_NAME = "_local_resolver.plan";
     private static final String PLAN_FILE_NAME = "_resolver.plan";
-    private static final String META_DATA_FILE_NAME = "maven-metadata-";
-    private static final String META_DATA_FILE_EXT = ".xml";
-    private static final String LATEST_PATTERN = ".*<release>(.*)<\\/release>.*";
+    private static final String VERSION_FILE_NAME = "_resolver.version";
 
     // Default timeout 2 hours
     private static final long TIMEOUT = 1000 * 60 * 60 * 2;
@@ -95,10 +84,19 @@ public class CachingDependencyResolver implements DependencyResolver {
     @Override
     public String resolveVersion(ArtifactDescriptor artifact) throws DependencyResolverException {
         if ("latest".equals(artifact.version())) {
-            Optional<Version> version = latestVersion(artifact);
-            if (version.isPresent()) {
-                return version.get().toString();
+            File artifactRoot = createVersionFile(artifact);
+            if (artifactRoot.exists() && !isOutdated(artifact, artifactRoot)) {
+                Optional<String> version = readVersionFromVersion(artifactRoot);
+                if (version.isPresent()) {
+                    return version.get();
+                }
             }
+
+            FileUtils.deleteQuietly(artifactRoot);
+
+            String version = delegate.resolveVersion(artifact);
+            writeVersionToVersion(version, artifactRoot);
+            return version;
         }
         return delegate.resolveVersion(artifact);
     }
@@ -107,10 +105,7 @@ public class CachingDependencyResolver implements DependencyResolver {
         if (artifact instanceof LocalArtifactDescriptor) {
             File manifest = new File(new File(artifact.uri()),
                     Manifest.ATOMIST_ROOT + File.separator + Manifest.FILE_NAME);
-            File packageJson = new File(new File(artifact.uri()),
-                    Manifest.ATOMIST_ROOT + File.separator + "package.json");
-            return manifest.lastModified() > file.lastModified()
-                    || packageJson.lastModified() > file.lastModified();
+            return manifest.lastModified() > file.lastModified();
         }
         return System.currentTimeMillis() - file.lastModified() > TIMEOUT;
     }
@@ -128,6 +123,16 @@ public class CachingDependencyResolver implements DependencyResolver {
         else {
             return new File(artifactRoot, PLAN_FILE_NAME);
         }
+    }
+
+    private File createVersionFile(ArtifactDescriptor artifact) {
+        File repoRoot = new File(repoHome);
+        File artifactRoot = new File(repoRoot, artifact.group().replace(".", File.separator)
+                + File.separator + artifact.artifact() + File.separator + VERSION_FILE_NAME);
+        if (!artifactRoot.exists()) {
+            artifactRoot.mkdirs();
+        }
+        return artifactRoot;
     }
 
     private Optional<List<ArtifactDescriptor>> readDependenciesFromPlan(File artifactRoot) {
@@ -150,6 +155,23 @@ public class CachingDependencyResolver implements DependencyResolver {
             // Fine, just move on with no plan
         }
         return validateDependenciesFromPlan(Optional.ofNullable(dependencies));
+    }
+
+    private Optional<String> readVersionFromVersion(File artifactRoot) {
+        try (InputStreamReader isr = new InputStreamReader(new FileInputStream(artifactRoot))) {
+            BufferedReader br = new BufferedReader(isr);
+            String line = null;
+            while ((line = br.readLine()) != null) {
+                return Optional.of(line);
+            }
+        }
+        catch (FileNotFoundException e) {
+            // At this time we know the file exists
+        }
+        catch (IOException e) {
+            // Fine, just move on with no plan
+        }
+        return Optional.empty();
     }
 
     private Optional<List<ArtifactDescriptor>> validateDependenciesFromPlan(
@@ -183,62 +205,19 @@ public class CachingDependencyResolver implements DependencyResolver {
         }
     }
 
-    private Optional<Version> latestVersion(ArtifactDescriptor artifact) {
-        File repoRoot = new File(repoHome);
-        File artifactRoot = new File(repoRoot, artifact.group().replace(".", File.separator)
-                + File.separator + artifact.artifact());
-        if (artifactRoot.exists()) {
-
-            File[] metadataFiles = artifactRoot
-                    .listFiles(f -> f.isFile() && f.getName().startsWith(META_DATA_FILE_NAME)
-                            && f.getName().endsWith(META_DATA_FILE_EXT));
-            
-            // If one file is outdated discard the full set
-            for (File metadataFile : metadataFiles) {
-                if (isOutdated(artifact, metadataFile)) {
-                    return Optional.empty();
-                }
+    private void writeVersionToVersion(String version, File artifactRoot) {
+        try (FileWriter writer = new FileWriter(artifactRoot)) {
+            try {
+                writer.write(version + "\n");
             }
-
-            List<String> versions = Arrays.stream(metadataFiles).map(f -> readLatestVersion(f))
-                    .filter(v -> v != null).collect(Collectors.toList());
-
-            return latestVersion(versions);
-        }
-        else {
-            return Optional.empty();
-        }
-    }
-
-    private String readLatestVersion(File file) {
-        Pattern pattern = Pattern.compile(LATEST_PATTERN);
-        try (InputStream is = new FileInputStream(file)) {
-            if (is != null) {
-                BufferedReader in = new BufferedReader(new InputStreamReader(is));
-                String line;
-                while ((line = in.readLine()) != null) {
-                    Matcher matcher = pattern.matcher(line);
-                    if (matcher.matches()) {
-                        return matcher.group(1);
-                    }
-                }
+            catch (IOException e) {
             }
+            writer.flush();
         }
         catch (IOException e) {
+            // Something went wrong, just delete the plan file
+            artifactRoot.delete();
         }
-        return null;
-    }
-
-    private Optional<Version> latestVersion(List<String> versions) {
-        VersionScheme scheme = new GenericVersionScheme();
-        return versions.stream().map(v -> {
-            try {
-                return scheme.parseVersion(v);
-            }
-            catch (InvalidVersionSpecificationException e) {
-                return null;
-            }
-        }).filter(v -> v != null).sorted((v1, v2) -> -1 * v1.compareTo(v2)).findFirst();
     }
 
 }
