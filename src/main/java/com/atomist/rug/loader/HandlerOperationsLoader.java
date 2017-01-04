@@ -14,4 +14,11 @@ public interface HandlerOperationsLoader extends OperationsLoader {
     Handlers loadHandlers(String teamId, String group, String artifact, String version,
             ArtifactSource source, MessageBuilder builder, TreeMaterializer treeMaterializer)
             throws OperationsLoaderException;
+
+    Handlers loadHandlers(String teamId, ArtifactDescriptor artifact, MessageBuilder builder,
+            TreeMaterializer treeMaterializer) throws OperationsLoaderException;
+
+    Handlers loadHandlers(String teamId, String group, String artifact, String version,
+            MessageBuilder builder, TreeMaterializer treeMaterializer)
+            throws OperationsLoaderException;
 }

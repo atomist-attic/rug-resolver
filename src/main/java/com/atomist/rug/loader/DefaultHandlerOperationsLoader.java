@@ -21,6 +21,7 @@ import com.atomist.rug.kind.DefaultTypeRegistry$;
 import com.atomist.rug.kind.dynamic.DefaultViewFinder$;
 import com.atomist.rug.kind.service.MessageBuilder;
 import com.atomist.rug.resolver.ArtifactDescriptor;
+import com.atomist.rug.resolver.ArtifactDescriptor.Extension;
 import com.atomist.rug.resolver.ArtifactDescriptorFactory;
 import com.atomist.rug.resolver.DefaultArtifactDescriptor;
 import com.atomist.rug.resolver.DependencyResolver;
@@ -39,6 +40,23 @@ public class DefaultHandlerOperationsLoader extends DefaultOperationsLoader
 
     public DefaultHandlerOperationsLoader(DependencyResolver resolver) {
         super(resolver);
+    }
+
+    @Override
+    public Handlers loadHandlers(String teamId, ArtifactDescriptor artifact, MessageBuilder builder,
+            TreeMaterializer treeMaterializer) throws OperationsLoaderException {
+        return loadHandlers(teamId, artifact, createArtifactSource(artifact), builder,
+                treeMaterializer);
+    }
+
+    @Override
+    public Handlers loadHandlers(String teamId, String group, String artifact, String version,
+            MessageBuilder builder, TreeMaterializer treeMaterializer)
+            throws OperationsLoaderException {
+        return loadHandlers(teamId, group, artifact, version,
+                createArtifactSource(
+                        new DefaultArtifactDescriptor(group, artifact, version, Extension.ZIP)),
+                builder, treeMaterializer);
     }
 
     @Override

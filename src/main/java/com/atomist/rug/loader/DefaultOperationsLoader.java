@@ -51,6 +51,17 @@ public class DefaultOperationsLoader implements OperationsLoader {
     public DefaultOperationsLoader(DependencyResolver resolver) {
         this.resolver = resolver;
     }
+    
+    @Override
+    public Operations load(ArtifactDescriptor artifact) throws OperationsLoaderException {
+        return load(artifact, createArtifactSource(artifact));
+    }
+
+    @Override
+    public Operations load(String group, String artifact, String version)
+            throws OperationsLoaderException {
+        return load(new DefaultArtifactDescriptor(group, artifact, version, Extension.ZIP));
+    }
 
     public final Operations load(String group, String artifact, String version,
             ArtifactSource source) throws OperationsLoaderException {
