@@ -21,7 +21,6 @@ import com.atomist.rug.kind.DefaultTypeRegistry$;
 import com.atomist.rug.kind.dynamic.DefaultViewFinder$;
 import com.atomist.rug.kind.service.MessageBuilder;
 import com.atomist.rug.resolver.ArtifactDescriptor;
-import com.atomist.rug.resolver.ArtifactDescriptor.Extension;
 import com.atomist.rug.resolver.ArtifactDescriptorFactory;
 import com.atomist.rug.resolver.DefaultArtifactDescriptor;
 import com.atomist.rug.resolver.DependencyResolver;
@@ -45,18 +44,14 @@ public class DefaultHandlerOperationsLoader extends DefaultOperationsLoader
     @Override
     public Handlers loadHandlers(String teamId, ArtifactDescriptor artifact, MessageBuilder builder,
             TreeMaterializer treeMaterializer) throws OperationsLoaderException {
-        return loadHandlers(teamId, artifact, createArtifactSource(artifact), builder,
-                treeMaterializer);
+        return loadHandlers(teamId, artifact, null, builder, treeMaterializer);
     }
 
     @Override
     public Handlers loadHandlers(String teamId, String group, String artifact, String version,
             MessageBuilder builder, TreeMaterializer treeMaterializer)
             throws OperationsLoaderException {
-        return loadHandlers(teamId, group, artifact, version,
-                createArtifactSource(
-                        new DefaultArtifactDescriptor(group, artifact, version, Extension.ZIP)),
-                builder, treeMaterializer);
+        return loadHandlers(teamId, group, artifact, version, null, builder, treeMaterializer);
     }
 
     @Override
@@ -100,6 +95,11 @@ public class DefaultHandlerOperationsLoader extends DefaultOperationsLoader
         for (ArtifactDescriptor ad : dependencies) {
             if (ad.match(artifact.group(), artifact.artifact(), artifact.version(),
                     ArtifactDescriptor.Extension.ZIP)) {
+                // Make sure to load the ArtifactSource if it hasn't been provided
+                if (source == null) {
+                    source = createArtifactSource(ad);
+                }
+
                 handlers = loadArtifact(teamId, ad, source, handlerReader, otherOperations,
                         builder);
             }
