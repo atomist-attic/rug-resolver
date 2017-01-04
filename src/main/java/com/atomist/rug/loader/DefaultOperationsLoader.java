@@ -54,7 +54,7 @@ public class DefaultOperationsLoader implements OperationsLoader {
     
     @Override
     public Operations load(ArtifactDescriptor artifact) throws OperationsLoaderException {
-        return load(artifact, createArtifactSource(artifact));
+        return load(artifact, null);
     }
 
     @Override
@@ -100,6 +100,11 @@ public class DefaultOperationsLoader implements OperationsLoader {
         for (ArtifactDescriptor ad : dependencies) {
             if (ad.match(artifact.group(), artifact.artifact(), artifact.version(),
                     Extension.ZIP)) {
+                // Make sure to load the ArtifactSource if it hasn't been provided
+                if (source == null) {
+                    source = createArtifactSource(ad);
+                }
+                
                 operations = loadArtifact(ad, source, reader, otherOperations);
             }
             else {
