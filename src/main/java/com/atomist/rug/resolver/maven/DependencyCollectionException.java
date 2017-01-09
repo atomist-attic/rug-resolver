@@ -8,6 +8,8 @@ import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.collection.CollectRequest;
 import org.eclipse.aether.collection.CollectResult;
 import org.eclipse.aether.repository.RemoteRepository;
+import org.eclipse.aether.resolution.ArtifactResolutionException;
+import org.eclipse.aether.resolution.ArtifactResult;
 
 import com.atomist.rug.resolver.DependencyResolverException;
 
@@ -31,10 +33,27 @@ public class DependencyCollectionException extends DependencyResolverException {
         getSource(e.getMessage(), e.getResult());
     }
 
+    public DependencyCollectionException(ArtifactResolutionException e) {
+        super(e.getMessage());
+        this.remoteRepositories = e.getResult().getRequest().getRepositories();
+        getSource(e.getMessage(), e.getResult());
+    }
+
     public DependencyCollectionException(String message,
             List<RemoteRepository> remoteRepositories) {
         super(message);
         this.remoteRepositories = remoteRepositories;
+    }
+
+    private void getSource(String message, ArtifactResult result) {
+        if (message.startsWith("Could not find artifact ")) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Failed to resolve or download dependencies:");
+            sb.append("\n").append("  ").append(result.getRequest().getArtifact());
+            sb.append(" ").append(REDIVID).append(" missing or unable to download");
+            this.type = ErrorType.DEPENDENCY_ERROR;
+            this.detailMessage = sb.toString();
+        }
     }
 
     private void getSource(String message, CollectResult result) {

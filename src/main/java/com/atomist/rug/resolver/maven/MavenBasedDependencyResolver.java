@@ -136,11 +136,7 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
                                         "Failed to resolveTransitiveDependencies rug archive for %s:%s:%s",
                                         artifact.group(), artifact.artifact(), artifact.version()),
                                 e);
-                        throw new DependencyResolverException(
-                                String.format(
-                                        "Failed to resolveTransitiveDependencies rug archive for %s:%s:%s",
-                                        artifact.group(), artifact.artifact(), artifact.version()),
-                                e);
+                        throw new com.atomist.rug.resolver.maven.DependencyCollectionException(e);
 
                     }
                 }
