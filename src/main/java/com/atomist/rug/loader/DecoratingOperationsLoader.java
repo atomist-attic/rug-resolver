@@ -64,19 +64,19 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
         List<ProjectGenerator> generators = asJavaCollectionConverter(operations.generators())
                 .asJavaCollection().stream().filter(g -> !g.name().equals("TypeDoc"))
                 .map(g -> new DecoratedProjectGenerator(g, gav, additionalPvs, source))
-                .collect(Collectors.toList());
+                .sorted((e1, e2) -> e1.name().compareTo(e2.name())).collect(Collectors.toList());
         List<ProjectEditor> editors = asJavaCollectionConverter(operations.editors())
                 .asJavaCollection().stream()
                 .map(g -> new DecoratedProjectEditor(g, gav, additionalPvs, source))
-                .collect(Collectors.toList());
+                .sorted((e1, e2) -> e1.name().compareTo(e2.name())).collect(Collectors.toList());
         List<ProjectReviewer> reviewers = asJavaCollectionConverter(operations.reviewers())
                 .asJavaCollection().stream()
                 .map(g -> new DecoratedProjectReviewer(g, gav, additionalPvs, source))
-                .collect(Collectors.toList());
+                .sorted((e1, e2) -> e1.name().compareTo(e2.name())).collect(Collectors.toList());
         List<Executor> executors = asJavaCollectionConverter(operations.executors())
                 .asJavaCollection().stream()
                 .map(g -> new DecoratedExecuter(g, gav, additionalPvs, source))
-                .collect(Collectors.toList());
+                .sorted((e1, e2) -> e1.name().compareTo(e2.name())).collect(Collectors.toList());
 
         return new Operations(asScalaBufferConverter(generators).asScala().toList(),
                 asScalaBufferConverter(editors).asScala().toList(),
