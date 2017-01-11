@@ -123,7 +123,14 @@ public class MetadataWriter {
         private Collection<Tag> tags;
 
         public Operation(ProjectOperation operation) {
-            name = operation.name();
+            // strip out the fully qualified names as we don't want them here
+            int ix = operation.name().lastIndexOf('.');
+            if (ix > 0) {
+                name = operation.name().substring(ix);
+            }
+            else {
+                name = operation.name();
+            }
             description = operation.description();
             parameters = JavaConverters.asJavaCollectionConverter(operation.parameters())
                     .asJavaCollection();
