@@ -62,6 +62,8 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
         File archive = new File(root, ".atomist/target/" + zipFileName);
 
         Manifest manifest = ManifestFactory.read(source);
+        manifest.setGroup(artifact.group());
+        manifest.setArtifact(artifact.artifact());
         manifest.setVersion(artifact.version());
         source = generateMetadata(operationsAndHandlers, artifact, source, manifest);
 
