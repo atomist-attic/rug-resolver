@@ -33,14 +33,12 @@ import com.atomist.rug.resolver.DependencyResolver;
 import com.atomist.rug.resolver.DependencyResolverException;
 import com.atomist.rug.runtime.rugdsl.DefaultEvaluator;
 import com.atomist.source.ArtifactSource;
-import com.atomist.source.FileArtifact;
 import com.atomist.source.file.FileSystemArtifactSource;
 import com.atomist.source.file.SimpleFileSystemArtifactSourceIdentifier;
 import com.atomist.source.file.ZipFileArtifactSourceReader;
 import com.atomist.source.file.ZipFileInput;
 
 import scala.Option;
-import scala.runtime.AbstractFunction1;
 
 public class DefaultOperationsLoader implements OperationsLoader {
 
@@ -187,20 +185,14 @@ public class DefaultOperationsLoader implements OperationsLoader {
         try {
             return reader.findOperations(source,
                     Option.apply(artifact.group() + "." + artifact.artifact()),
-                    asScalaBufferConverter(otherOperations).asScala().toList(),
-                    new AbstractFunction1<FileArtifact, Object>() {
-                        @Override
-                        public Object apply(FileArtifact artifact) {
-                            return artifact.path().startsWith(".atomist/handlers");
-                        }
-                    });
+                    asScalaBufferConverter(otherOperations).asScala().toList());
         }
         catch (RugRuntimeException e) {
             LOGGER.error(String.format("Failed to load Rug archive for %s:%s:%s", artifact.group(),
                     artifact.artifact(), artifact.version()), e);
             throw new OperationsLoaderRuntimeException(
-                    String.format("Failed to load Rug archive for %s:%s:%s", artifact.group(),
-                            artifact.artifact(), artifact.version()),
+                    String.format("Failed to load Rug archive for %s:%s:%s:\n  %s", artifact.group(),
+                            artifact.artifact(), artifact.version(), e.getMessage()),
                     e);
         }
     }

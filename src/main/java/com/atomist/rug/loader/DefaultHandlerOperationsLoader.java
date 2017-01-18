@@ -148,16 +148,16 @@ public class DefaultHandlerOperationsLoader extends DefaultOperationsLoader
             LOGGER.error(String.format("Failed to load Rug archive for %s:%s:%s", artifact.group(),
                     artifact.artifact(), artifact.version()), e);
             throw new OperationsLoaderRuntimeException(
-                    String.format("Failed to load Rug archive for %s:%s:%s", artifact.group(),
-                            artifact.artifact(), artifact.version()),
+                    String.format("Failed to load Rug archive for %s:%s:%s:\n  %s", artifact.group(),
+                            artifact.artifact(), artifact.version(), e.getMessage()),
                     e);
         }
         catch (BadRugException e) {
             LOGGER.error(String.format("Failed to load Rug archive for %s:%s:%s", artifact.group(),
                     artifact.artifact(), artifact.version()), e);
             throw new OperationsLoaderRuntimeException(
-                    String.format("Failed to load Rug archive for %s:%s:%s", artifact.group(),
-                            artifact.artifact(), artifact.version()),
+                    String.format("Failed to load Rug archive for %s:%s:%s:\n  %s", artifact.group(),
+                            artifact.artifact(), artifact.version(), e.getMessage()),
                     e);
         }
     }
