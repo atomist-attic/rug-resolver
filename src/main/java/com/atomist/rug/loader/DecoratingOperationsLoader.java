@@ -305,7 +305,6 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
     private static class DecoratedProjectGenerator
             extends DelegatingProjectOperation<ProjectGenerator> implements ProjectGenerator {
 
-<<<<<<< HEAD
         private static final String PROJECT_NAME_PARAMETER_NAME = "project_name";
         private static final Parameter PROJECT_NAME_PARAMETER;
         static {
@@ -321,14 +320,10 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
         }
 
         private boolean hasOwnProjectNameParameter = false;
-=======
-        private ProjectEditor editor;
->>>>>>> Make readers and writers abstract classes
 
         public DecoratedProjectGenerator(ProjectGenerator delegate, ResourceSpecifier gav,
                 List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
-<<<<<<< HEAD
             init();
         }
 
@@ -339,12 +334,6 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
                     .findFirst().isPresent();
             if (!this.hasOwnProjectNameParameter) {
                 this.additionalParameters.add(PROJECT_NAME_PARAMETER);
-=======
-
-            // TODO CD remove this when https://github.com/atomist/rug/issues/197 is fixed
-            if (delegate instanceof EditorInvokingProjectGenerator) {
-                this.editor = ((EditorInvokingProjectGenerator) delegate).editor();
->>>>>>> Make readers and writers abstract classes
             }
         }
 
@@ -384,14 +373,6 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
                 }
             });
         }
-<<<<<<< HEAD
-=======
-
-        // TODO CD remove this when https://github.com/atomist/rug/issues/197 is fixed
-        public ProjectEditor editor() {
-            return editor;
-        }
->>>>>>> Make readers and writers abstract classes
     }
     
     private static class DecoratedProjectReviewer
