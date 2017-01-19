@@ -1,12 +1,28 @@
 package com.atomist.rug.loader;
 
+import static scala.collection.JavaConverters.asJavaCollectionConverter;
+import static scala.collection.JavaConverters.asScalaBufferConverter;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 import com.atomist.event.SystemEvent;
 import com.atomist.event.SystemEventHandler;
 import com.atomist.param.Parameter;
 import com.atomist.param.ParameterValue;
 import com.atomist.param.ParameterValues;
 import com.atomist.param.Tag;
-import com.atomist.project.*;
+import com.atomist.project.Executor;
+import com.atomist.project.ProjectOperation;
+import com.atomist.project.ProjectOperationArguments;
+import com.atomist.project.ProjectOperationInfo;
+import com.atomist.project.ProvenanceInfo;
+import com.atomist.project.ProvenanceInfoArtifactSourceReader;
 import com.atomist.project.archive.Operations;
 import com.atomist.project.common.InvalidParametersException;
 import com.atomist.project.common.MissingParametersException;
@@ -14,6 +30,7 @@ import com.atomist.project.edit.Applicability;
 import com.atomist.project.edit.Impact;
 import com.atomist.project.edit.ModificationAttempt;
 import com.atomist.project.edit.ProjectEditor;
+import com.atomist.project.generate.EditorInvokingProjectGenerator;
 import com.atomist.project.generate.ProjectGenerator;
 import com.atomist.project.review.ProjectReviewer;
 import com.atomist.project.review.ReviewResult;
@@ -26,16 +43,11 @@ import com.atomist.source.DirectoryArtifact;
 import com.atomist.source.FileArtifact;
 import com.atomist.tree.content.project.ResourceSpecifier;
 import com.atomist.tree.content.project.SimpleResourceSpecifier;
+
 import scala.Option;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
 import scala.runtime.AbstractFunction1;
-
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static scala.collection.JavaConverters.asJavaCollectionConverter;
-import static scala.collection.JavaConverters.asScalaBufferConverter;
 
 public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
 
@@ -289,12 +301,20 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
         }
     }
 
-    private static class DecoratedProjectGenerator
+    // TODO CD make this private again when https://github.com/atomist/rug/issues/197 is fixed
+    public static class DecoratedProjectGenerator
             extends DelegatingProjectOperation<ProjectGenerator> implements ProjectGenerator {
-
+        
+        private ProjectEditor editor;
+        
         public DecoratedProjectGenerator(ProjectGenerator delegate, ResourceSpecifier gav,
                 List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
+            
+            // TODO CD remove this when https://github.com/atomist/rug/issues/197 is fixed
+            if (delegate instanceof EditorInvokingProjectGenerator) {
+                this.editor = ((EditorInvokingProjectGenerator) delegate).editor();
+            }
         }
 
         @Override
@@ -320,6 +340,11 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
                     return true;
                 }
             });
+        }
+        
+        // TODO CD remove this when https://github.com/atomist/rug/issues/197 is fixed
+        public ProjectEditor editor() {
+            return editor;
         }
     }
 
