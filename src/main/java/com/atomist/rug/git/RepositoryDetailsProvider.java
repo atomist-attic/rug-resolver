@@ -34,11 +34,11 @@ public class RepositoryDetailsProvider {
             
             String sha = lastCommit.abbreviate(7).name();
             String url = repository.getConfig().getString("remote", "origin", "url");
-            if (url != null) {
-                url = url.replaceAll("git@github.com.*:", "");
-                url = url.replace("https://github.com/", "");
-                url = url.replace("http://github.com/", "");
-            }
+//            if (url != null) {
+//                url = url.replaceAll("git@github.com.*:", "");
+//                url = url.replace("https://github.com/", "");
+//                url = url.replace("http://github.com/", "");
+//            }
             String branch = repository.getBranch();
             String date = null;
             try (RevWalk walk = new RevWalk(repository)) {

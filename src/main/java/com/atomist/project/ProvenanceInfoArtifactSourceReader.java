@@ -14,7 +14,6 @@ import com.atomist.rug.manifest.Manifest;
 import com.atomist.source.ArtifactSource;
 import com.atomist.source.FileArtifact;
 import com.atomist.source.file.FileSystemArtifactSourceIdentifier;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import scala.Option;
 
@@ -27,7 +26,6 @@ public class ProvenanceInfoArtifactSourceReader {
         String sha = null;
 
         Option<FileArtifact> manifest = source.findFile(".atomist/" + Manifest.FILE_NAME);
-        Option<FileArtifact> packageJson = source.findFile(".atomist/package.json");
 
         if (manifest.isDefined()) {
             Yaml yaml = new Yaml();
@@ -48,29 +46,6 @@ public class ProvenanceInfoArtifactSourceReader {
                 sha = allDocuments.get("sha").toString();
             }
         }
-        else if (packageJson.isDefined()) {
-            try {
-                ObjectMapper mapper = new ObjectMapper();
-                Map<String, Object> allDocuments = mapper.readValue(packageJson.get().content(),
-                        Map.class);
-                if (allDocuments.containsKey("atomist")) {
-                    Map<String, Object> atomist = (Map<String, Object>) allDocuments.get("atomist");
-                    if (atomist.containsKey("repo")) {
-                        repo = (String) atomist.get("repo");
-                    }
-                    if (atomist.containsKey("branch")) {
-                        branch = (String) atomist.get("branch");
-                    }
-                    if (atomist.containsKey("sha")) {
-                        // Sometimes the sha gets written out as number
-                        sha = atomist.get("sha").toString();
-                    }
-                }
-            }
-            catch (IOException e) {
-            }
-        }
-
         if (repo != null && branch != null && sha != null) {
             return Optional.of(new SimpleProvenanceInfo(repo, branch, sha));
         }

@@ -11,6 +11,7 @@ import com.atomist.event.SystemEventHandler;
 import com.atomist.param.Parameter;
 import com.atomist.param.Tag;
 import com.atomist.project.ProjectOperation;
+import com.atomist.project.ProvenanceInfo;
 import com.atomist.project.archive.Operations;
 import com.atomist.rug.loader.Handlers;
 import com.atomist.rug.loader.OperationsAndHandlers;
@@ -35,9 +36,9 @@ import scala.collection.JavaConverters;
 public class MetadataWriter {
 
     public FileArtifact create(OperationsAndHandlers operationsAndHandlers,
-            ArtifactDescriptor artifact, ArtifactSource source) {
+            ArtifactDescriptor artifact, ArtifactSource source, ProvenanceInfo info) {
         try {
-            ArchiveMetadata metadata = new ArchiveMetadata(operationsAndHandlers, artifact);
+            ArchiveMetadata metadata = new ArchiveMetadata(operationsAndHandlers, artifact, info);
             String metadataJson = objectMapper().writeValueAsString(metadata);
             return new StringFileArtifact("metadata.json", ".atomist", metadataJson);
         }
@@ -73,6 +74,9 @@ public class MetadataWriter {
 
         @JsonProperty
         private String version;
+        
+        @JsonProperty
+        private Origin origin;
 
         @JsonProperty
         private List<Operation> editors;
@@ -90,7 +94,7 @@ public class MetadataWriter {
         private List<Handler> handlers;
 
         public ArchiveMetadata(OperationsAndHandlers operationsAndHandlers,
-                ArtifactDescriptor artifact) {
+                ArtifactDescriptor artifact, ProvenanceInfo info) {
             Operations operations = operationsAndHandlers.operations();
             Handlers handlers = operationsAndHandlers.handlers();
             this.editors = JavaConverters.asJavaCollectionConverter(operations.editors())
@@ -104,7 +108,9 @@ public class MetadataWriter {
             this.handlers = handlers.handlers().stream().map(Handler::new).collect(Collectors.toList());
             this.group = artifact.group();
             this.artifact = artifact.artifact();
-            version = artifact.version();
+            this.version = artifact.version();
+            
+            this.origin = new Origin(info.repo().get(), info.branch().get(), info.sha().get());
         }
     }
 
@@ -157,6 +163,24 @@ public class MetadataWriter {
             description = handler.description();
             rootNode = handler.rootNodeName();
             tags = JavaConverters.asJavaCollectionConverter(handler.tags()).asJavaCollection();
+        }
+    }
+    
+    private static class Origin {
+
+        @JsonProperty
+        private String repo;
+        
+        @JsonProperty
+        private String branch;
+        
+        @JsonProperty
+        private String sha;
+        
+        public Origin(String repo, String branch, String sha) {
+            this.repo = repo;
+            this.branch = branch;
+            this.sha = sha;
         }
     }
 
