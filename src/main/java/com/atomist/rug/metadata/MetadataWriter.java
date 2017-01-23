@@ -110,7 +110,9 @@ public class MetadataWriter {
             this.artifact = artifact.artifact();
             this.version = artifact.version();
             
-            this.origin = new Origin(info.repo().get(), info.branch().get(), info.sha().get());
+            if (info != null) {
+                this.origin = new Origin(info.repo().get(), info.branch().get(), info.sha().get());
+            }
         }
     }
 
