@@ -30,6 +30,7 @@ import com.atomist.project.common.MissingParametersException;
 import com.atomist.project.edit.Applicability;
 import com.atomist.project.edit.ModificationAttempt;
 import com.atomist.project.edit.ProjectEditor;
+import com.atomist.project.generate.EditorInvokingProjectGenerator;
 import com.atomist.project.generate.ProjectGenerator;
 import com.atomist.project.review.ProjectReviewer;
 import com.atomist.project.review.ReviewResult;
@@ -302,7 +303,8 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
 
     }
 
-    private static class DecoratedProjectGenerator
+    // TODO CD make this private again when https://github.com/atomist/rug/issues/197 is fixed
+    public static class DecoratedProjectGenerator
             extends DelegatingProjectOperation<ProjectGenerator> implements ProjectGenerator {
 
         private static final String PROJECT_NAME_PARAMETER_NAME = "project_name";
@@ -320,11 +322,18 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
         }
 
         private boolean hasOwnProjectNameParameter = false;
+        // TODO CD make this private again when https://github.com/atomist/rug/issues/197 is fixed
+        private ProjectEditor editor;
 
         public DecoratedProjectGenerator(ProjectGenerator delegate, ResourceSpecifier gav,
                 List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
             init();
+            
+            // TODO CD make this private again when https://github.com/atomist/rug/issues/197 is fixed
+            if (delegate instanceof EditorInvokingProjectGenerator) {
+                this.editor = ((EditorInvokingProjectGenerator) delegate).editor();
+            }
         }
 
         private void init() {
@@ -372,6 +381,11 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
                     return true;
                 }
             });
+        }
+        
+        // TODO CD remove this when https://github.com/atomist/rug/issues/197 is fixed
+        public ProjectEditor editor() {
+            return editor;
         }
     }
 
