@@ -151,7 +151,7 @@ public class MetadataWriter {
             // strip out the fully qualified names as we don't want them here
             int ix = operation.name().lastIndexOf('.');
             if (ix > 0) {
-                name = operation.name().substring(ix);
+                name = operation.name().substring(ix + 1);
             }
             else {
                 name = operation.name();
