@@ -29,17 +29,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule;
 
 import scala.collection.JavaConverters;
 
 public class MetadataWriter {
 
-    public FileArtifact create(OperationsAndHandlers operationsAndHandlers,
-            ArtifactDescriptor artifact, ArtifactSource source, ProvenanceInfo info) {
+    public static enum Format {
+        JSON, YAML
+    }
+
+    public static FileArtifact create(OperationsAndHandlers operationsAndHandlers,
+            ArtifactDescriptor artifact, ArtifactSource source, ProvenanceInfo info,
+            Format format) {
         try {
             ArchiveMetadata metadata = new ArchiveMetadata(operationsAndHandlers, artifact, info);
-            String metadataJson = objectMapper().writeValueAsString(metadata);
+            String metadataJson = objectMapper(format).writeValueAsString(metadata);
             return new StringFileArtifact("metadata.json", ".atomist", metadataJson);
         }
         catch (JsonProcessingException e) {
@@ -48,9 +54,19 @@ public class MetadataWriter {
         return null;
     }
 
-    private ObjectMapper objectMapper() {
-        // ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-        ObjectMapper mapper = new ObjectMapper();
+    public static FileArtifact create(OperationsAndHandlers operationsAndHandlers,
+            ArtifactDescriptor artifact, ArtifactSource source, ProvenanceInfo info) {
+        return create(operationsAndHandlers, artifact, source, info, Format.JSON);
+    }
+
+    private static ObjectMapper objectMapper(Format format) {
+        ObjectMapper mapper = null;
+        if (format == Format.YAML) {
+            mapper = new ObjectMapper(new YAMLFactory());
+        }
+        else {
+            mapper = new ObjectMapper();
+        }
         new Jackson2ObjectMapperBuilder()
                 .modulesToInstall(new MetadataModule(), new DefaultScalaModule())
                 .serializationInclusion(JsonInclude.Include.NON_NULL)
@@ -74,7 +90,7 @@ public class MetadataWriter {
 
         @JsonProperty
         private String version;
-        
+
         @JsonProperty
         private Origin origin;
 
@@ -89,7 +105,7 @@ public class MetadataWriter {
 
         @JsonProperty
         private List<Operation> reviewers;
-        
+
         @JsonProperty
         private List<Handler> handlers;
 
@@ -105,11 +121,12 @@ public class MetadataWriter {
                     .asJavaCollection().stream().map(Operation::new).collect(Collectors.toList());
             this.reviewers = JavaConverters.asJavaCollectionConverter(operations.reviewers())
                     .asJavaCollection().stream().map(Operation::new).collect(Collectors.toList());
-            this.handlers = handlers.handlers().stream().map(Handler::new).collect(Collectors.toList());
+            this.handlers = handlers.handlers().stream().map(Handler::new)
+                    .collect(Collectors.toList());
             this.group = artifact.group();
             this.artifact = artifact.artifact();
             this.version = artifact.version();
-            
+
             if (info != null) {
                 this.origin = new Origin(info.repo().get(), info.branch().get(), info.sha().get());
             }
@@ -147,19 +164,19 @@ public class MetadataWriter {
     }
 
     private static class Handler {
-        
+
         @JsonProperty
         private String name;
-        
+
         @JsonProperty
         private String description;
-        
+
         @JsonProperty
         private Collection<Tag> tags;
-        
+
         @JsonProperty(value = "root_node")
         private String rootNode;
-        
+
         public Handler(SystemEventHandler handler) {
             name = handler.name();
             description = handler.description();
@@ -167,18 +184,18 @@ public class MetadataWriter {
             tags = JavaConverters.asJavaCollectionConverter(handler.tags()).asJavaCollection();
         }
     }
-    
+
     private static class Origin {
 
         @JsonProperty
         private String repo;
-        
+
         @JsonProperty
         private String branch;
-        
+
         @JsonProperty
         private String sha;
-        
+
         public Origin(String repo, String branch, String sha) {
             this.repo = repo;
             this.branch = branch;
@@ -186,7 +203,7 @@ public class MetadataWriter {
         }
     }
 
-    public class TagSerializer extends JsonSerializer<Tag> {
+    public static class TagSerializer extends JsonSerializer<Tag> {
 
         @Override
         public void serialize(Tag value, JsonGenerator gen, SerializerProvider serializers)
@@ -199,7 +216,7 @@ public class MetadataWriter {
     }
 
     @SuppressWarnings("serial")
-    public class MetadataModule extends SimpleModule {
+    public static class MetadataModule extends SimpleModule {
 
         public MetadataModule() {
             addSerializer(Tag.class, new TagSerializer());

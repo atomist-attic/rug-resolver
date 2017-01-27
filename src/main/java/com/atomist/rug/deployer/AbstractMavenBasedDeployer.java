@@ -129,7 +129,7 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
 
     private ArtifactSource writeMetadata(OperationsAndHandlers operationsAndHandlers, ArtifactDescriptor artifact,
             ArtifactSource source, ProvenanceInfo info) {
-        FileArtifact metadataFile = new MetadataWriter().create(operationsAndHandlers, artifact, source, info);
+        FileArtifact metadataFile = MetadataWriter.create(operationsAndHandlers, artifact, source, info);
 
         ArtifactSource result = source.plus(metadataFile);
         listener.metadataFileGenerated(metadataFile);
