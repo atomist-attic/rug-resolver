@@ -303,8 +303,7 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
 
     }
 
-    // TODO CD make this private again when https://github.com/atomist/rug/issues/197 is fixed
-    public static class DecoratedProjectGenerator
+    private static class DecoratedProjectGenerator
             extends DelegatingProjectOperation<ProjectGenerator> implements ProjectGenerator {
 
         private static final String PROJECT_NAME_PARAMETER_NAME = "project_name";
@@ -322,18 +321,11 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
         }
 
         private boolean hasOwnProjectNameParameter = false;
-        // TODO CD make this private again when https://github.com/atomist/rug/issues/197 is fixed
-        private ProjectEditor editor;
 
         public DecoratedProjectGenerator(ProjectGenerator delegate, ResourceSpecifier gav,
                 List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
             init();
-            
-            // TODO CD make this private again when https://github.com/atomist/rug/issues/197 is fixed
-            if (delegate instanceof EditorInvokingProjectGenerator) {
-                this.editor = ((EditorInvokingProjectGenerator) delegate).editor();
-            }
         }
 
         private void init() {
@@ -382,13 +374,8 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
                 }
             });
         }
-        
-        // TODO CD remove this when https://github.com/atomist/rug/issues/197 is fixed
-        public ProjectEditor editor() {
-            return editor;
-        }
     }
-
+    
     private static class DecoratedProjectReviewer
             extends DelegatingProjectOperation<ProjectReviewer> implements ProjectReviewer {
 
