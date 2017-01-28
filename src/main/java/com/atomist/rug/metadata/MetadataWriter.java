@@ -34,7 +34,7 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule;
 
 import scala.collection.JavaConverters;
 
-public class MetadataWriter {
+public abstract class MetadataWriter {
 
     public static enum Format {
         JSON, YAML

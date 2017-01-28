@@ -7,9 +7,9 @@ import com.atomist.source.StringFileArtifact;
 
 import scala.Option;
 
-public class ProvenanceInfoArtifactSourceWriter {
+public abstract class ProvenanceInfoArtifactSourceWriter {
 
-    public ArtifactSource write(ProvenanceInfo provenanceInfo, ArtifactSource source) {
+    public static ArtifactSource write(ProvenanceInfo provenanceInfo, ArtifactSource source) {
         if (provenanceInfo == null) {
             return source;
         }
@@ -21,7 +21,7 @@ public class ProvenanceInfoArtifactSourceWriter {
         return source;
     }
 
-    private ArtifactSource writeProvenanceInfoToManifest(ProvenanceInfo provenanceInfo,
+    private static ArtifactSource writeProvenanceInfoToManifest(ProvenanceInfo provenanceInfo,
             ArtifactSource source, Option<FileArtifact> manifestArtifact) {
         StringBuilder sb = new StringBuilder(manifestArtifact.get().content()).append("\n---\n");
         sb.append("repo: \"").append(provenanceInfo.repo().get()).append("\"\n");

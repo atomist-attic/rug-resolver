@@ -9,7 +9,7 @@ import java.util.Optional;
 import org.yaml.snakeyaml.Yaml;
 
 import com.atomist.rug.git.RepositoryDetails;
-import com.atomist.rug.git.RepositoryDetailsProvider;
+import com.atomist.rug.git.RepositoryDetailsReader;
 import com.atomist.rug.manifest.Manifest;
 import com.atomist.source.ArtifactSource;
 import com.atomist.source.FileArtifact;
@@ -17,10 +17,10 @@ import com.atomist.source.file.FileSystemArtifactSourceIdentifier;
 
 import scala.Option;
 
-public class ProvenanceInfoArtifactSourceReader {
+public abstract class ProvenanceInfoArtifactSourceReader {
 
     @SuppressWarnings("unchecked")
-    public Optional<ProvenanceInfo> read(ArtifactSource source) {
+    public static Optional<ProvenanceInfo> read(ArtifactSource source) {
         String repo = null;
         String branch = null;
         String sha = null;
@@ -55,8 +55,8 @@ public class ProvenanceInfoArtifactSourceReader {
         if (source.id() instanceof FileSystemArtifactSourceIdentifier) {
             File rootFile = ((FileSystemArtifactSourceIdentifier) source.id()).rootFile();
             try {
-                Optional<RepositoryDetails> detailsOptional = new RepositoryDetailsProvider()
-                        .readDetails(rootFile);
+                Optional<RepositoryDetails> detailsOptional = RepositoryDetailsReader
+                        .read(rootFile);
                 if (detailsOptional.isPresent()) {
                     RepositoryDetails details = detailsOptional.get();
                     return Optional.of(new SimpleProvenanceInfo(details.repo(), details.branch(),
