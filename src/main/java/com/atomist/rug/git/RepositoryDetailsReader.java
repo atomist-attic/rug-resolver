@@ -16,9 +16,9 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
-public class RepositoryDetailsProvider {
+public abstract class RepositoryDetailsReader {
 
-    public Optional<RepositoryDetails> readDetails(File projectRoot) throws IOException {
+    public static Optional<RepositoryDetails> read(File projectRoot) throws IOException {
         FileRepositoryBuilder builder = new FileRepositoryBuilder();
         try (Repository repository = builder.readEnvironment().findGitDir().build()) {
             // Verify that we are in a git repository and have a branch
@@ -34,11 +34,6 @@ public class RepositoryDetailsProvider {
             
             String sha = lastCommit.abbreviate(7).name();
             String url = repository.getConfig().getString("remote", "origin", "url");
-//            if (url != null) {
-//                url = url.replaceAll("git@github.com.*:", "");
-//                url = url.replace("https://github.com/", "");
-//                url = url.replace("http://github.com/", "");
-//            }
             String branch = repository.getBranch();
             String date = null;
             try (RevWalk walk = new RevWalk(repository)) {

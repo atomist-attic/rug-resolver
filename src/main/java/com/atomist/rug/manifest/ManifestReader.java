@@ -21,14 +21,14 @@ class ManifestReader {
     public Manifest read(ArtifactSource source) {
         Option<FileArtifact> manifestFile = source.findFile(".atomist/manifest.yml");
         if (manifestFile.isDefined()) {
-            
+
             Manifest manifest = new Manifest();
-            
+
             Iterable<Object> documents = readYaml(manifestFile);
 
             documents.forEach(doc -> {
                 Map<String, Object> manifestYaml = (Map<String, Object>) doc;
-                
+
                 String group = (String) manifestYaml.get("group");
                 String artifact = (String) manifestYaml.get("artifact");
                 String version = (String) manifestYaml.get("version");
@@ -46,15 +46,15 @@ class ManifestReader {
                 if (requires != null) {
                     manifest.setRequires(requires);
                 }
-                
+
                 List<String> dependencies = (List<String>) manifestYaml.getOrDefault("dependencies",
                         Collections.emptyList());
                 List<String> extensions = (List<String>) manifestYaml.getOrDefault("extensions",
                         Collections.emptyList());
-                
+
                 Map<String, Map<String, String>> repositories = (Map<String, Map<String, String>>) manifestYaml
                         .getOrDefault("repositories", Collections.emptyMap());
-                
+
                 if (dependencies != null) {
                     dependencies.forEach(d -> manifest.addDependency(Gav.formString(d)));
                 }
@@ -66,27 +66,29 @@ class ManifestReader {
                             .addRepository(new Repository(r.getKey(), r.getValue().get("url"))));
                 }
             });
-            
-            Optional<ProvenanceInfo> provenanceInfoOptional = new ProvenanceInfoArtifactSourceReader().read(source);
+
+            Optional<ProvenanceInfo> provenanceInfoOptional = ProvenanceInfoArtifactSourceReader
+                    .read(source);
             if (provenanceInfoOptional.isPresent()) {
                 ProvenanceInfo provenanceInfo = provenanceInfoOptional.get();
                 manifest.setRepo(provenanceInfo.repo().get());
                 manifest.setBranch(provenanceInfo.branch().get());
                 manifest.setSha(provenanceInfo.sha().get());
             }
-            
+
             return ManifestValidator.validate(manifest);
         }
         throw new ManifestException("manifest.yml could not be found in .atomist");
     }
-    
+
     private Iterable<Object> readYaml(Option<FileArtifact> manifestFile) {
         try {
             Yaml yaml = new Yaml();
             return (Iterable<Object>) yaml.loadAll(manifestFile.get().content());
         }
         catch (ParserException e) {
-            throw new ManifestException("manifest.yml file in .atomist is malformed:\n\n%s", e.getMessage());
+            throw new ManifestException("manifest.yml file in .atomist is malformed:\n\n%s",
+                    e.getMessage());
         }
     }
 }

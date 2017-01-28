@@ -115,7 +115,7 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
         }
 
         private void init(ArtifactSource artifactSource) {
-            Optional<ProvenanceInfo> provenanceInfoOptional = new ProvenanceInfoArtifactSourceReader()
+            Optional<ProvenanceInfo> provenanceInfoOptional = ProvenanceInfoArtifactSourceReader
                     .read(artifactSource);
             if (provenanceInfoOptional.isPresent()) {
                 ProvenanceInfo provenanceInfo = provenanceInfoOptional.get();
@@ -304,13 +304,13 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
     // TODO CD make this private again when https://github.com/atomist/rug/issues/197 is fixed
     public static class DecoratedProjectGenerator
             extends DelegatingProjectOperation<ProjectGenerator> implements ProjectGenerator {
-        
+
         private ProjectEditor editor;
-        
+
         public DecoratedProjectGenerator(ProjectGenerator delegate, ResourceSpecifier gav,
                 List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
-            
+
             // TODO CD remove this when https://github.com/atomist/rug/issues/197 is fixed
             if (delegate instanceof EditorInvokingProjectGenerator) {
                 this.editor = ((EditorInvokingProjectGenerator) delegate).editor();
@@ -341,7 +341,7 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
                 }
             });
         }
-        
+
         // TODO CD remove this when https://github.com/atomist/rug/issues/197 is fixed
         public ProjectEditor editor() {
             return editor;
@@ -379,7 +379,7 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
         }
 
         private void init(ArtifactSource artifactSource) {
-            Optional<ProvenanceInfo> provenanceInfoOptional = new ProvenanceInfoArtifactSourceReader()
+            Optional<ProvenanceInfo> provenanceInfoOptional = ProvenanceInfoArtifactSourceReader
                     .read(artifactSource);
             if (provenanceInfoOptional.isPresent()) {
                 ProvenanceInfo provenanceInfo = provenanceInfoOptional.get();

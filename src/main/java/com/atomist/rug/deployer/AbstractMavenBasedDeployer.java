@@ -209,6 +209,6 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
 
     private ArtifactSource writeProvenanceInfo(ProvenanceInfo provenanceInfo,
             ArtifactSource source) {
-        return new ProvenanceInfoArtifactSourceWriter().write(provenanceInfo, source);
+        return ProvenanceInfoArtifactSourceWriter.write(provenanceInfo, source);
     }
 }
