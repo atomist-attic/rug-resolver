@@ -302,7 +302,15 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
 
     }
 
+<<<<<<< HEAD
     private static class DecoratedProjectGenerator
+=======
+<<<<<<< HEAD
+    public static class DecoratedProjectGenerator
+=======
+    private static class DecoratedProjectGenerator
+>>>>>>> Remove temp fix to generator tests
+>>>>>>> Remove temp fix to generator tests
             extends DelegatingProjectOperation<ProjectGenerator> implements ProjectGenerator {
 
         private static final String PROJECT_NAME_PARAMETER_NAME = "project_name";
