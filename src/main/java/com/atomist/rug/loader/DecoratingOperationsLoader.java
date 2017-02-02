@@ -23,14 +23,13 @@ import com.atomist.project.ProjectOperationArguments;
 import com.atomist.project.ProjectOperationInfo;
 import com.atomist.project.ProvenanceInfo;
 import com.atomist.project.ProvenanceInfoArtifactSourceReader;
+import com.atomist.project.SimpleProjectOperationArguments;
 import com.atomist.project.archive.Operations;
 import com.atomist.project.common.InvalidParametersException;
 import com.atomist.project.common.MissingParametersException;
 import com.atomist.project.edit.Applicability;
-import com.atomist.project.edit.Impact;
 import com.atomist.project.edit.ModificationAttempt;
 import com.atomist.project.edit.ProjectEditor;
-import com.atomist.project.generate.EditorInvokingProjectGenerator;
 import com.atomist.project.generate.ProjectGenerator;
 import com.atomist.project.review.ProjectReviewer;
 import com.atomist.project.review.ReviewResult;
@@ -101,16 +100,18 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
 
         private T delegate;
         private ResourceSpecifier gav;
-        private List<ParameterValue> additionalParameters;
         private String repo;
         private String branch;
         private String sha;
+        protected List<ParameterValue> additionalParameterValues;
+        protected List<Parameter> additionalParameters;
 
         public DelegatingProjectOperation(T delegate, ResourceSpecifier gav,
-                List<ParameterValue> additionalParameters, ArtifactSource artifactSource) {
+                List<ParameterValue> additionalParameterValues, ArtifactSource artifactSource) {
             this.delegate = delegate;
             this.gav = gav;
-            this.additionalParameters = additionalParameters;
+            this.additionalParameterValues = new ArrayList<>(additionalParameterValues);
+            this.additionalParameters = new ArrayList<>();
             init(artifactSource);
         }
 
@@ -142,7 +143,11 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
 
         @Override
         public Seq<Parameter> parameters() {
-            return delegate.parameters();
+            List<Parameter> parameters = new ArrayList<>();
+            parameters.addAll(this.additionalParameters);
+            parameters.addAll(JavaConverters.asJavaCollectionConverter(delegate.parameters())
+                    .asJavaCollection());
+            return JavaConverters.asScalaBufferConverter(parameters).asScala();
         }
 
         @Override
@@ -188,7 +193,7 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
                     Map<String, ParameterValue> pvs = new HashMap<>();
                     pvs.putAll(
                             JavaConverters.mapAsJavaMapConverter(poa.parameterValueMap()).asJava());
-                    additionalParameters.stream().forEach(p -> pvs.put(p.getName(), p));
+                    additionalParameterValues.stream().forEach(p -> pvs.put(p.getName(), p));
                     return JavaConverters.asScalaBufferConverter(new ArrayList<>(pvs.values()))
                             .asScala();
                 }
@@ -295,32 +300,59 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
             return getDelegate().reverse();
         }
 
-        @Override
-        public scala.collection.immutable.Set<Impact> impacts() {
-            return getDelegate().impacts();
-        }
     }
 
-    // TODO CD make this private again when https://github.com/atomist/rug/issues/197 is fixed
-    public static class DecoratedProjectGenerator
+    private static class DecoratedProjectGenerator
             extends DelegatingProjectOperation<ProjectGenerator> implements ProjectGenerator {
 
-        private ProjectEditor editor;
+        private static final String PROJECT_NAME_PARAMETER_NAME = "project_name";
+        private static final Parameter PROJECT_NAME_PARAMETER;
+        static {
+            PROJECT_NAME_PARAMETER = new Parameter(PROJECT_NAME_PARAMETER_NAME);
+            PROJECT_NAME_PARAMETER.setDisplayName("Project Name");
+            PROJECT_NAME_PARAMETER.describedAs("Name of your new project");
+            PROJECT_NAME_PARAMETER.setValidInputDescription(
+                    "A valid GitHub repo name containing only alphanumeric, ., -, and _ characters and 21 characters or less to avoid Slack truncating the name when creating a channel for the repo");
+            PROJECT_NAME_PARAMETER.setDisplayName("Project Name");
+            PROJECT_NAME_PARAMETER.setMinLength(1);
+            PROJECT_NAME_PARAMETER.setMaxLength(21);
+            PROJECT_NAME_PARAMETER.setRequired(true);
+        }
+
+        private boolean hasOwnProjectNameParameter = false;
 
         public DecoratedProjectGenerator(ProjectGenerator delegate, ResourceSpecifier gav,
                 List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
+            init();
+        }
 
-            // TODO CD remove this when https://github.com/atomist/rug/issues/197 is fixed
-            if (delegate instanceof EditorInvokingProjectGenerator) {
-                this.editor = ((EditorInvokingProjectGenerator) delegate).editor();
+        private void init() {
+            this.hasOwnProjectNameParameter = JavaConverters
+                    .asJavaCollectionConverter(getDelegate().parameters()).asJavaCollection()
+                    .stream().filter(p -> p.getName().equals(PROJECT_NAME_PARAMETER_NAME))
+                    .findFirst().isPresent();
+            if (!this.hasOwnProjectNameParameter) {
+                this.additionalParameters.add(PROJECT_NAME_PARAMETER);
             }
         }
 
         @Override
-        public ArtifactSource generate(ProjectOperationArguments tcc)
+        public ArtifactSource generate(String projectName, ProjectOperationArguments poa)
                 throws InvalidParametersException {
-            ArtifactSource source = getDelegate().generate(decorateProjectOperationArguments(tcc));
+            if (!this.hasOwnProjectNameParameter) {
+                List<ParameterValue> pvs = JavaConverters
+                        .seqAsJavaListConverter(poa.parameterValues()).asJava();
+                Optional<ParameterValue> projectNamePv = pvs.stream()
+                        .filter(pv -> pv.getName().equals(PROJECT_NAME_PARAMETER_NAME)).findFirst();
+                if (projectNamePv.isPresent()) {
+                    pvs.remove(projectNamePv.get());
+                    poa = new SimpleProjectOperationArguments(poa.name(),
+                            JavaConverters.asScalaBufferConverter(pvs).asScala());
+                }
+            }
+            ArtifactSource source = getDelegate().generate(projectName,
+                    decorateProjectOperationArguments(poa));
             return source.filter(new AbstractFunction1<DirectoryArtifact, Object>() {
                 @Override
                 public Object apply(DirectoryArtifact dir) {
@@ -341,13 +373,8 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
                 }
             });
         }
-
-        // TODO CD remove this when https://github.com/atomist/rug/issues/197 is fixed
-        public ProjectEditor editor() {
-            return editor;
-        }
     }
-
+    
     private static class DecoratedProjectReviewer
             extends DelegatingProjectOperation<ProjectReviewer> implements ProjectReviewer {
 

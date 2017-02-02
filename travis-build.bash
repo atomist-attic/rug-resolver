@@ -48,7 +48,7 @@ function main() {
         return 0
     fi
 
-    if [[ $TRAVIS_BRANCH == master || $TRAVIS_TAG =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    if [[ $TRAVIS_BRANCH == rug-* || $TRAVIS_BRANCH == master || $TRAVIS_TAG =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         msg "version is $project_version"
         local mvn_deploy_args
         if [[ $TRAVIS_BRANCH == master ]]; then
