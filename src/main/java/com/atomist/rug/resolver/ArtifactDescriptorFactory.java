@@ -58,6 +58,27 @@ public class ArtifactDescriptorFactory {
 
     }
 
+    public static ArtifactDescriptor copyFrom(ArtifactDescriptor a, String group, String artifact,
+            String version, Extension ext) {
+        group = (group != null ? group : a.group());
+        artifact = (artifact != null ? artifact : a.artifact());
+        version = (version != null ? version : a.version());
+
+        DefaultArtifactDescriptor newArtifact;
+
+        if (a instanceof LocalArtifactDescriptor) {
+            newArtifact = new LocalArtifactDescriptor(group, artifact, version, ext, a.scope(),
+                    a.uri());
+        }
+        else {
+            newArtifact = new DefaultArtifactDescriptor(group, artifact, version, ext, a.scope(),
+                    a.uri());
+        }
+        a.dependencies().forEach(d -> newArtifact.addDependency(d));
+        return newArtifact;
+
+    }
+
     public static Extension toExtension(String extension) {
         return Extension.valueOf(extension.toUpperCase());
     }
