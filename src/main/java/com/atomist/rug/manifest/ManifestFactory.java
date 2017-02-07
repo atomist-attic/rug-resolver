@@ -12,7 +12,7 @@ public abstract class ManifestFactory {
                 return manifest;
             }
         }
-        throw new ManifestException("No manifest.yml found in .atomist folder");
+        throw new MissingManifestException("No manifest.yml found in .atomist folder");
     }
 
 }
