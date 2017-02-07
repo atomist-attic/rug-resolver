@@ -78,7 +78,7 @@ class ManifestReader {
 
             return ManifestValidator.validate(manifest);
         }
-        throw new ManifestException("manifest.yml could not be found in .atomist");
+        throw new MissingManifestException("manifest.yml could not be found in .atomist");
     }
 
     private Iterable<Object> readYaml(Option<FileArtifact> manifestFile) {
@@ -87,7 +87,7 @@ class ManifestReader {
             return (Iterable<Object>) yaml.loadAll(manifestFile.get().content());
         }
         catch (ParserException e) {
-            throw new ManifestException("manifest.yml file in .atomist is malformed:\n\n%s",
+            throw new ManifestParsingException("manifest.yml file in .atomist is malformed:\n\n%s",
                     e.getMessage());
         }
     }
