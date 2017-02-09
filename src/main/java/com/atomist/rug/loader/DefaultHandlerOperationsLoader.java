@@ -18,7 +18,6 @@ import com.atomist.rug.BadRugException;
 import com.atomist.rug.EmptyRugFunctionRegistry;
 import com.atomist.rug.RugRuntimeException;
 import com.atomist.rug.kind.DefaultTypeRegistry$;
-import com.atomist.rug.kind.dynamic.DefaultViewFinder$;
 import com.atomist.rug.kind.service.MessageBuilder;
 import com.atomist.rug.resolver.ArtifactDescriptor;
 import com.atomist.rug.resolver.ArtifactDescriptorFactory;
@@ -124,8 +123,7 @@ public class DefaultHandlerOperationsLoader extends DefaultOperationsLoader
 
     private HandlerArchiveReader handlerReader(TreeMaterializer treeMaterializer) {
         return new HandlerArchiveReader(treeMaterializer, DefaultAtomistConfig$.MODULE$,
-                new DefaultEvaluator(new EmptyRugFunctionRegistry()), DefaultViewFinder$.MODULE$,
-                DefaultTypeRegistry$.MODULE$);
+                new DefaultEvaluator(new EmptyRugFunctionRegistry()), DefaultTypeRegistry$.MODULE$);
     }
 
     protected List<SystemEventHandler> postProcess(ArtifactDescriptor artifact,
