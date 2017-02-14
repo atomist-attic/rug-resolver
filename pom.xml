@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.atomist</groupId>
 	<artifactId>rug-resolver</artifactId>
-	<version>0.11.1-SNAPSHOT</version>
+	<version>0.12.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>rug-resolver</name>
 	<description>Resolver library used to resolve Rug Operations and Archives</description>
@@ -19,7 +19,7 @@
 		<scala.version>2.11.8</scala.version>
 		<scala.binary.version>2.11</scala.binary.version>
 		<scoverage.plugin.version>1.3.0</scoverage.plugin.version>
-		<rug.version>0.11.0</rug.version>
+		<rug.version>(0.11.1,0.13.0)</rug.version>
 	</properties>
 	<licenses>
 		<license>
