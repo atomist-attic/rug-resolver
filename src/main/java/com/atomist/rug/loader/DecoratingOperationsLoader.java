@@ -346,7 +346,8 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
                 Optional<ParameterValue> projectNamePv = pvs.stream()
                         .filter(pv -> pv.getName().equals(PROJECT_NAME_PARAMETER_NAME)).findFirst();
                 if (projectNamePv.isPresent()) {
-                    pvs.remove(projectNamePv.get());
+                    pvs = pvs.stream().filter(p -> !p.getName().equals(PROJECT_NAME_PARAMETER_NAME))
+                            .collect(Collectors.toList());
                     poa = new SimpleProjectOperationArguments(poa.name(),
                             JavaConverters.asScalaBufferConverter(pvs).asScala());
                 }
@@ -374,7 +375,7 @@ public class DecoratingOperationsLoader extends DefaultHandlerOperationsLoader {
             });
         }
     }
-    
+
     private static class DecoratedProjectReviewer
             extends DelegatingProjectOperation<ProjectReviewer> implements ProjectReviewer {
 
