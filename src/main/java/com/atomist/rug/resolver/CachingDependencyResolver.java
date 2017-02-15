@@ -12,10 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.atomist.rug.resolver.manifest.Manifest;
 import org.apache.commons.io.FileUtils;
-
-import com.atomist.rug.manifest.Manifest;
-import com.atomist.rug.resolver.ArtifactDescriptor.Scope;
 
 /**
  * {@link DependencyResolver} that adds caching semantics on top of a wrapped
@@ -144,7 +142,7 @@ public class CachingDependencyResolver implements DependencyResolver {
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split("#");
                 dependencies.add(new DefaultArtifactDescriptor(parts[0], parts[1], parts[2],
-                        ArtifactDescriptorFactory.toExtension(parts[3]), Scope.COMPILE,
+                        ArtifactDescriptorFactory.toExtension(parts[3]), ArtifactDescriptor.Scope.COMPILE,
                         URI.create(parts[4])));
             }
         }

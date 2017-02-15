@@ -8,6 +8,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.FutureTask;
 import java.util.stream.Collectors;
 
+import com.atomist.rug.resolver.DefaultArtifactDescriptor;
+import com.atomist.rug.resolver.DependencyResolverException;
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
 import org.eclipse.aether.DefaultRepositorySystemSession;
 import org.eclipse.aether.RepositorySystem;
@@ -50,9 +52,7 @@ import org.springframework.stereotype.Component;
 
 import com.atomist.rug.resolver.ArtifactDescriptor;
 import com.atomist.rug.resolver.ArtifactDescriptorFactory;
-import com.atomist.rug.resolver.DefaultArtifactDescriptor;
 import com.atomist.rug.resolver.DependencyResolver;
-import com.atomist.rug.resolver.DependencyResolverException;
 
 import io.takari.aether.localrepo.TakariLocalRepositoryManagerFactory;
 

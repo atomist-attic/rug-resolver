@@ -3,6 +3,7 @@ package com.atomist.rug.resolver.maven;
 import java.util.Collections;
 import java.util.List;
 
+import com.atomist.rug.resolver.DependencyResolverException;
 import org.apache.commons.lang3.SystemUtils;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.collection.CollectRequest;
@@ -10,8 +11,6 @@ import org.eclipse.aether.collection.CollectResult;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.resolution.ArtifactResolutionException;
 import org.eclipse.aether.resolution.ArtifactResult;
-
-import com.atomist.rug.resolver.DependencyResolverException;
 
 public class DependencyCollectionException extends DependencyResolverException {
 
