@@ -78,6 +78,14 @@ public class ManifestPomWriter {
             rugArchive.setVersion(d.version());
             rugArchive.setType("zip");
             model.addDependency(rugArchive);
+
+//            Dependency rugArchiveMetadata = new Dependency();
+//            rugArchiveMetadata.setGroupId(d.group());
+//            rugArchiveMetadata.setArtifactId(d.artifact());
+//            rugArchiveMetadata.setVersion(d.version());
+//            rugArchiveMetadata.setType("json");
+//            rugArchiveMetadata.setClassifier("metadata");
+//            model.addDependency(rugArchiveMetadata);
         });
     }
 
