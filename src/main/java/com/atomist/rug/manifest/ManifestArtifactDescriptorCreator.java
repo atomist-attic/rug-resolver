@@ -15,7 +15,7 @@ public class ManifestArtifactDescriptorCreator {
         LocalArtifactDescriptor artifact = new LocalArtifactDescriptor(manifest.group(),
                 manifest.artifact(), manifest.version(), Extension.ZIP, Scope.RUNTIME, uri);
 
-        // add rug-lib dependency
+        // add rug dependency
         artifact.addDependency(new DefaultArtifactDescriptor("com.atomist", "rug",
                 manifest.requires(), Extension.JAR, Scope.COMPILE, null));
 
@@ -23,6 +23,8 @@ public class ManifestArtifactDescriptorCreator {
         manifest.dependencies().forEach(d -> {
             artifact.addDependency(new DefaultArtifactDescriptor(d.group(), d.artifact(),
                     d.version(), Extension.ZIP, Scope.COMPILE, null));
+            artifact.addDependency(new DefaultArtifactDescriptor(d.group(), d.artifact(),
+                    d.version(), Extension.JSON, Scope.COMPILE, "metadata", null));
         });
 
         // add extension types

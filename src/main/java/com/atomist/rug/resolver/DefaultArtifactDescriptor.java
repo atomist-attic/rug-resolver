@@ -12,21 +12,28 @@ public class DefaultArtifactDescriptor implements ArtifactDescriptor {
     private final URI uri;
     private final Extension extension;
     private final Scope scope;
+    private final String classifier;
     private List<ArtifactDescriptor> dependencies = new ArrayList<>();
     
     public DefaultArtifactDescriptor(String group, String artifact, String version,
             Extension extension) {
-        this(group, artifact, version, extension, Scope.COMPILE, null);
+        this(group, artifact, version, extension, Scope.COMPILE, null, null);
     }
 
     public DefaultArtifactDescriptor(String group, String artifact, String version,
             Extension extension, Scope scope, URI uri) {
+        this(group, artifact, version, extension, scope, null, uri);
+    }
+
+    public DefaultArtifactDescriptor(String group, String artifact, String version,
+            Extension extension, Scope scope, String classifier, URI uri) {
         this.group = group;
         this.artifact = artifact;
         this.version = version;
         this.uri = uri;
         this.extension = extension;
         this.scope = scope;
+        this.classifier = classifier;
     }
 
     @Override
@@ -57,6 +64,11 @@ public class DefaultArtifactDescriptor implements ArtifactDescriptor {
     @Override
     public URI uri() {
         return uri;
+    }
+    
+    @Override
+    public String classifier() {
+        return classifier;
     }
 
     @Override

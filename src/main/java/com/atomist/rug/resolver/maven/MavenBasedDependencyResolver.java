@@ -204,11 +204,21 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
     }
 
     protected Dependency createDependencyRoot(ArtifactDescriptor artifactDescriptor) {
-        Artifact artifact = new DefaultArtifact(String.format("%s:%s:%s:%s",
-                artifactDescriptor.group(), artifactDescriptor.artifact(),
-                artifactDescriptor.extension().toString().toLowerCase(),
-                artifactDescriptor.version()));
-        return new Dependency(artifact, "compile");
+        Artifact artifact = null;
+        if (artifactDescriptor.classifier() == null) {
+            artifact = new DefaultArtifact(String.format("%s:%s:%s:%s", artifactDescriptor.group(),
+                    artifactDescriptor.artifact(),
+                    artifactDescriptor.extension().toString().toLowerCase(),
+                    artifactDescriptor.version()));
+            return new Dependency(artifact, "compile");
+        }
+        else {
+            artifact = new DefaultArtifact(String.format("%s:%s:%s:%s:%s",
+                    artifactDescriptor.group(), artifactDescriptor.artifact(),
+                    artifactDescriptor.extension().toString().toLowerCase(),
+                    artifactDescriptor.classifier(), artifactDescriptor.version()));
+            return new Dependency(artifact, "compile", true);
+        }
     }
 
     private List<DependencyNode> collectDependencies(ArtifactDescriptor artifact,

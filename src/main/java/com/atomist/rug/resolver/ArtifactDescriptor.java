@@ -14,6 +14,8 @@ public interface ArtifactDescriptor {
     Extension extension();
 
     Scope scope();
+    
+    String classifier();
 
     URI uri();
 
@@ -22,7 +24,7 @@ public interface ArtifactDescriptor {
     List<ArtifactDescriptor> dependencies();
 
     public enum Extension {
-        JAR, ZIP
+        JAR, ZIP, JSON
     }
 
     public enum Scope {

@@ -16,7 +16,7 @@ public class ManifestPomWriter {
     public String write(Manifest manifest, ArtifactDescriptor artifact) {
         MavenXpp3Writer writer = new MavenXpp3Writer();
         Model model = new Model();
-        
+
         addProjectInformation(manifest, artifact, model);
         addRequiresDependency(manifest, model);
         addArchiveDependencies(manifest, model);
@@ -32,7 +32,8 @@ public class ManifestPomWriter {
         return sw.toString();
     }
 
-    private void addProjectInformation(Manifest manifest, ArtifactDescriptor artifact, Model model) {
+    private void addProjectInformation(Manifest manifest, ArtifactDescriptor artifact,
+            Model model) {
         model.setGroupId(manifest.group());
         model.setArtifactId(manifest.artifact());
         model.setVersion(manifest.version());
@@ -78,14 +79,16 @@ public class ManifestPomWriter {
             rugArchive.setVersion(d.version());
             rugArchive.setType("zip");
             model.addDependency(rugArchive);
-
-//            Dependency rugArchiveMetadata = new Dependency();
-//            rugArchiveMetadata.setGroupId(d.group());
-//            rugArchiveMetadata.setArtifactId(d.artifact());
-//            rugArchiveMetadata.setVersion(d.version());
-//            rugArchiveMetadata.setType("json");
-//            rugArchiveMetadata.setClassifier("metadata");
-//            model.addDependency(rugArchiveMetadata);
+            
+            // add dependency on metadata.json to pom model
+            Dependency rugArchiveMetadata = new Dependency();
+            rugArchiveMetadata.setGroupId(d.group());
+            rugArchiveMetadata.setArtifactId(d.artifact());
+            rugArchiveMetadata.setVersion(d.version());
+            rugArchiveMetadata.setType("json");
+            rugArchiveMetadata.setClassifier("metadata");
+            rugArchiveMetadata.setOptional(true);
+            model.addDependency(rugArchiveMetadata);
         });
     }
 
