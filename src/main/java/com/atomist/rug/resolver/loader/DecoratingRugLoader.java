@@ -55,8 +55,8 @@ import static scala.collection.JavaConverters.asScalaBufferConverter;
 
 public class DecoratingRugLoader extends BaseRugLoader {
 
-    public DecoratingRugLoader(DependencyResolver resolver, String teamId) {
-        super(resolver, teamId);
+    public DecoratingRugLoader(DependencyResolver resolver) {
+        super(resolver);
     }
 
     @Override

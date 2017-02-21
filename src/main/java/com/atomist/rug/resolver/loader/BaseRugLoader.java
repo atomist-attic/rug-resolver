@@ -49,11 +49,8 @@ abstract class BaseRugLoader implements RugLoader {
 
     private final DependencyResolver resolver;
 
-    private String teamId;
-
-    public BaseRugLoader(DependencyResolver resolver, String teamId) {
+    public BaseRugLoader(DependencyResolver resolver) {
         this.resolver = resolver;
-        this.teamId = teamId;
     }
 
     @Override
@@ -215,7 +212,7 @@ abstract class BaseRugLoader implements RugLoader {
     }
 
     protected DefaultRugArchiveReader operationsReader() {
-        return new DefaultRugArchiveReader(teamId, DefaultAtomistConfig$.MODULE$,
+        return new DefaultRugArchiveReader(DefaultAtomistConfig$.MODULE$,
                 new DefaultEvaluator(new EmptyRugDslFunctionRegistry()),
                 DefaultTypeRegistry$.MODULE$);
     }
