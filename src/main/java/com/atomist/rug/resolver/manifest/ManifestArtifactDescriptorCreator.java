@@ -1,14 +1,12 @@
 package com.atomist.rug.resolver.manifest;
 
 import com.atomist.rug.resolver.ArtifactDescriptor;
+import com.atomist.rug.resolver.ArtifactDescriptor.Extension;
+import com.atomist.rug.resolver.ArtifactDescriptor.Scope;
 import com.atomist.rug.resolver.DefaultArtifactDescriptor;
 import com.atomist.rug.resolver.LocalArtifactDescriptor;
 
 import java.net.URI;
-
-import static com.atomist.rug.resolver.ArtifactDescriptor.Extension;
-import static com.atomist.rug.resolver.ArtifactDescriptor.Scope;
-
 
 public class ManifestArtifactDescriptorCreator {
 

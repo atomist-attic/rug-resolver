@@ -1,9 +1,10 @@
 package com.atomist.rug.resolver.maven;
 
+import com.atomist.rug.resolver.DependencyResolverException;
+
 import java.util.Collections;
 import java.util.List;
 
-import com.atomist.rug.resolver.DependencyResolverException;
 import org.apache.commons.lang3.SystemUtils;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.collection.CollectRequest;

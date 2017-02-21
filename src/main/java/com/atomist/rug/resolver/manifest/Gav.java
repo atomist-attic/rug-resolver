@@ -1,8 +1,8 @@
 package com.atomist.rug.resolver.manifest;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(Include.NON_EMPTY)
 public class Gav {
@@ -13,7 +13,7 @@ public class Gav {
 
     public Gav() {
     }
-    
+
     public Gav(String group, String artifact, String version) {
         this.group = group;
         this.artifact = artifact;
@@ -21,19 +21,19 @@ public class Gav {
             this.version = version.replace(" ", "");
         }
     }
-    
+
     public void setGroup(String group) {
         this.group = group;
     }
-    
+
     public void setArtifact(String artifact) {
         this.artifact = artifact;
     }
-    
+
     public void setVersion(String version) {
         this.version = version;
     }
-    
+
     @JsonProperty("group")
     public String group() {
         return group;

@@ -1,5 +1,8 @@
 package com.atomist.rug.resolver.loader;
 
+import static scala.collection.JavaConverters.asJavaCollectionConverter;
+import static scala.collection.JavaConverters.asScalaBufferConverter;
+
 import com.atomist.project.archive.DefaultAtomistConfig$;
 import com.atomist.project.archive.DefaultRugArchiveReader;
 import com.atomist.project.archive.Rugs;
@@ -25,10 +28,6 @@ import com.atomist.source.file.SimpleFileSystemArtifactSourceIdentifier;
 import com.atomist.source.file.ZipFileArtifactSourceReader;
 import com.atomist.source.file.ZipFileInput;
 import com.atomist.tree.TreeMaterializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.util.StringUtils;
-import scala.Option;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -37,8 +36,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static scala.collection.JavaConverters.asJavaCollectionConverter;
-import static scala.collection.JavaConverters.asScalaBufferConverter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
+
+import scala.Option;
 
 /**
  * Common stuff for loading operations/handlers
@@ -57,21 +59,22 @@ abstract class BaseRugLoader implements RugLoader {
         this.teamId = teamId;
         this.trees = trees;
     }
-    
+
     @Override
     public Rugs load(ArtifactDescriptor artifact) throws RugLoaderException {
         return load(artifact, null);
     }
 
     @Override
-    public Rugs load(String group, String artifact, String version)
-            throws RugLoaderException {
-        return load(new DefaultArtifactDescriptor(group, artifact, version, ArtifactDescriptor.Extension.ZIP));
+    public Rugs load(String group, String artifact, String version) throws RugLoaderException {
+        return load(new DefaultArtifactDescriptor(group, artifact, version,
+                ArtifactDescriptor.Extension.ZIP));
     }
 
-    public final Rugs load(String group, String artifact, String version,
-            ArtifactSource source) throws RugLoaderException {
-        return load(new DefaultArtifactDescriptor(group, artifact, version, ArtifactDescriptor.Extension.ZIP), source);
+    public final Rugs load(String group, String artifact, String version, ArtifactSource source)
+            throws RugLoaderException {
+        return load(new DefaultArtifactDescriptor(group, artifact, version,
+                ArtifactDescriptor.Extension.ZIP), source);
     }
 
     @Override
@@ -110,14 +113,14 @@ abstract class BaseRugLoader implements RugLoader {
                 if (source == null) {
                     source = createArtifactSource(ad);
                 }
-                
+
                 operations = loadArtifact(ad, source, reader, otherOperations);
             }
             else {
                 ArtifactSource artifactSource = createArtifactSource(ad);
                 otherOperations.addAll(asJavaCollectionConverter(
-                        loadArtifact(ad, artifactSource, reader, otherOperations).projectOperations())
-                                .asJavaCollection());
+                        loadArtifact(ad, artifactSource, reader, otherOperations)
+                                .projectOperations()).asJavaCollection());
             }
         }
 
@@ -201,28 +204,22 @@ abstract class BaseRugLoader implements RugLoader {
     }
 
     protected Rugs loadArtifact(ArtifactDescriptor artifact, ArtifactSource source,
-                                DefaultRugArchiveReader reader, List<Rug> otherOperations)
-            throws RugLoaderException {
+            DefaultRugArchiveReader reader, List<Rug> otherOperations) throws RugLoaderException {
         try {
-            return reader.find(source,
-                    Option.apply(artifact.group() + "." + artifact.artifact()),
+            return reader.find(source, Option.apply(artifact.group() + "." + artifact.artifact()),
                     asScalaBufferConverter(otherOperations).asScala().toList());
         }
         catch (RugRuntimeException e) {
             LOGGER.error(String.format("Failed to load Rug archive for %s:%s:%s", artifact.group(),
                     artifact.artifact(), artifact.version()), e);
-            throw new RugLoaderRuntimeException(
-                    String.format("Failed to load Rug archive for %s:%s:%s:\n  %s", artifact.group(),
-                            artifact.artifact(), artifact.version(), e.getMessage()),
-                    e);
+            throw new RugLoaderRuntimeException(String.format(
+                    "Failed to load Rug archive for %s:%s:%s:\n  %s", artifact.group(),
+                    artifact.artifact(), artifact.version(), e.getMessage()), e);
         }
     }
 
     protected DefaultRugArchiveReader operationsReader() {
-        return new DefaultRugArchiveReader(
-                teamId,
-                trees,
-                DefaultAtomistConfig$.MODULE$,
+        return new DefaultRugArchiveReader(teamId, trees, DefaultAtomistConfig$.MODULE$,
                 new DefaultEvaluator(new EmptyRugDslFunctionRegistry()),
                 DefaultTypeRegistry$.MODULE$);
     }

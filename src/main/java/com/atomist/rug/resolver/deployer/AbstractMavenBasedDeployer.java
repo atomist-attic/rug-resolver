@@ -17,6 +17,13 @@ import com.atomist.source.SimpleSourceUpdateInfo;
 import com.atomist.source.StringFileArtifact;
 import com.atomist.source.file.StreamingZipFileOutput;
 import com.atomist.source.file.ZipFileArtifactSourceWriter;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
+
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
 import org.eclipse.aether.DefaultRepositorySystemSession;
 import org.eclipse.aether.RepositorySystem;
@@ -30,12 +37,6 @@ import org.eclipse.aether.util.artifact.SubArtifact;
 import org.eclipse.aether.util.repository.ConservativeProxySelector;
 import org.eclipse.aether.util.repository.JreProxySelector;
 import org.springframework.util.Assert;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
 
 public abstract class AbstractMavenBasedDeployer implements Deployer {
 
@@ -54,7 +55,7 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
 
     @Override
     public void deploy(Rugs operationsAndHandlers, ArtifactSource source,
-                       ArtifactDescriptor artifact, File root) throws IOException {
+            ArtifactDescriptor artifact, File root) throws IOException {
 
         String zipFileName = artifact.artifact() + "-" + artifact.version() + "."
                 + artifact.extension().toString().toLowerCase();
@@ -128,7 +129,8 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
 
     private ArtifactSource writeMetadata(Rugs operationsAndHandlers, ArtifactDescriptor artifact,
             ArtifactSource source, GitInfo info) {
-        FileArtifact metadataFile = MetadataWriter.create(operationsAndHandlers, artifact, source, info);
+        FileArtifact metadataFile = MetadataWriter.create(operationsAndHandlers, artifact, source,
+                info);
 
         ArtifactSource result = source.plus(metadataFile);
         listener.metadataFileGenerated(metadataFile);
@@ -206,8 +208,7 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
         return result;
     }
 
-    private ArtifactSource writeProvenanceInfo(GitInfo provenanceInfo,
-            ArtifactSource source) {
+    private ArtifactSource writeProvenanceInfo(GitInfo provenanceInfo, ArtifactSource source) {
         return ProvenanceInfoArtifactSourceWriter.write(provenanceInfo, source);
     }
 }

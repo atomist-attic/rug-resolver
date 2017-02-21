@@ -23,8 +23,7 @@ public abstract class ManifestValidator {
     private static void validateVersion(String version, String key) {
         if (version == null) {
             throw new ManifestParsingException(
-                    "%s should not be empty. Please correct %s in manifest.yml", key,
-                    key);
+                    "%s should not be empty. Please correct %s in manifest.yml", key, key);
         }
 
         try {

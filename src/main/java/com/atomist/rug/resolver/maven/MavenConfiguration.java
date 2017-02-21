@@ -1,8 +1,9 @@
 package com.atomist.rug.resolver.maven;
 
+import com.atomist.rug.resolver.concurrent.MdcThreadPoolExecutor;
+
 import java.util.concurrent.ExecutorService;
 
-import com.atomist.rug.resolver.concurrent.MdcThreadPoolExecutor;
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.connector.basic.BasicRepositoryConnectorFactory;

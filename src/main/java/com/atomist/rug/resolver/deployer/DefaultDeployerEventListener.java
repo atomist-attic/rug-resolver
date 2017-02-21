@@ -1,9 +1,9 @@
 package com.atomist.rug.resolver.deployer;
 
+import com.atomist.source.FileArtifact;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.atomist.source.FileArtifact;
 
 public class DefaultDeployerEventListener implements DeployerEventListener {
 

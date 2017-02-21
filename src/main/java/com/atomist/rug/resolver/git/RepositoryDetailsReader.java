@@ -25,13 +25,13 @@ public abstract class RepositoryDetailsReader {
             if (repository.getDirectory() == null && repository.getFullBranch() == null) {
                 return Optional.empty();
             }
-            
+
             // Verify that there is a commit in the repository
             ObjectId lastCommit = repository.resolve(repository.getFullBranch());
             if (lastCommit == null) {
                 return Optional.empty();
             }
-            
+
             String sha = lastCommit.abbreviate(7).name();
             String url = repository.getConfig().getString("remote", "origin", "url");
             String branch = repository.getBranch();

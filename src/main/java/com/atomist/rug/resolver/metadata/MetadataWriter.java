@@ -20,13 +20,15 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
-import scala.collection.JavaConverters;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+
+import scala.collection.JavaConverters;
 
 /**
  * Writes all the handler/operation metadata to metadata.json for consumption of catalog
@@ -37,9 +39,8 @@ public abstract class MetadataWriter {
         JSON, YAML
     }
 
-    public static FileArtifact create(Rugs operationsAndHandlers,
-            ArtifactDescriptor artifact, ArtifactSource source, GitInfo info,
-            Format format) {
+    public static FileArtifact create(Rugs operationsAndHandlers, ArtifactDescriptor artifact,
+            ArtifactSource source, GitInfo info, Format format) {
         try {
             ArchiveMetadata metadata = new ArchiveMetadata(operationsAndHandlers, artifact, info);
             String metadataJson = objectMapper(format).writeValueAsString(metadata);
@@ -51,8 +52,8 @@ public abstract class MetadataWriter {
         return null;
     }
 
-    public static FileArtifact create(Rugs operationsAndHandlers,
-            ArtifactDescriptor artifact, ArtifactSource source, GitInfo info) {
+    public static FileArtifact create(Rugs operationsAndHandlers, ArtifactDescriptor artifact,
+            ArtifactSource source, GitInfo info) {
         return create(operationsAndHandlers, artifact, source, info, Format.JSON);
     }
 
@@ -88,7 +89,7 @@ public abstract class MetadataWriter {
         @JsonProperty
         private String version;
 
-        //git branch/hash etc taken from provenance-info
+        // git branch/hash etc taken from provenance-info
         @JsonProperty
         private Origin origin;
 
@@ -110,24 +111,29 @@ public abstract class MetadataWriter {
         @JsonProperty
         private List<ResponseHandler> responseHandlers;
 
-        public ArchiveMetadata(Rugs rugs,
-                ArtifactDescriptor artifact, GitInfo info) {
+        public ArchiveMetadata(Rugs rugs, ArtifactDescriptor artifact, GitInfo info) {
 
-          //  Handlers handlers = operationsAndHandlers.handlers();
+            // Handlers handlers = operationsAndHandlers.handlers();
             this.editors = JavaConverters.asJavaCollectionConverter(rugs.editors())
-                    .asJavaCollection().stream().map(ProjectOperation::new).collect(Collectors.toList());
+                    .asJavaCollection().stream().map(ProjectOperation::new)
+                    .collect(Collectors.toList());
             this.generators = JavaConverters.asJavaCollectionConverter(rugs.generators())
-                    .asJavaCollection().stream().map(ProjectOperation::new).collect(Collectors.toList());
+                    .asJavaCollection().stream().map(ProjectOperation::new)
+                    .collect(Collectors.toList());
             this.reviewers = JavaConverters.asJavaCollectionConverter(rugs.reviewers())
-                    .asJavaCollection().stream().map(ProjectOperation::new).collect(Collectors.toList());
+                    .asJavaCollection().stream().map(ProjectOperation::new)
+                    .collect(Collectors.toList());
             this.eventHandlers = JavaConverters.asJavaCollectionConverter(rugs.eventHandlers())
-                    .asJavaCollection().stream().map(EventHandler::new).collect(Collectors.toList());
+                    .asJavaCollection().stream().map(EventHandler::new)
+                    .collect(Collectors.toList());
 
             this.commandHandlers = JavaConverters.asJavaCollectionConverter(rugs.commandHandlers())
-                    .asJavaCollection().stream().map(CommandHandler::new).collect(Collectors.toList());
+                    .asJavaCollection().stream().map(CommandHandler::new)
+                    .collect(Collectors.toList());
 
-            this.responseHandlers = JavaConverters.asJavaCollectionConverter(rugs.responseHandlers())
-                    .asJavaCollection().stream().map(ResponseHandler::new).collect(Collectors.toList());
+            this.responseHandlers = JavaConverters
+                    .asJavaCollectionConverter(rugs.responseHandlers()).asJavaCollection().stream()
+                    .map(ResponseHandler::new).collect(Collectors.toList());
             this.group = artifact.group();
             this.artifact = artifact.artifact();
             this.version = artifact.version();

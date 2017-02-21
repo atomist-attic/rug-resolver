@@ -1,5 +1,9 @@
 package com.atomist.rug.resolver.loader;
 
+import static java.util.Comparator.comparing;
+import static scala.collection.JavaConverters.asJavaCollectionConverter;
+import static scala.collection.JavaConverters.asScalaBufferConverter;
+
 import com.atomist.param.Parameter;
 import com.atomist.param.ParameterValue;
 import com.atomist.param.ParameterValues;
@@ -36,10 +40,6 @@ import com.atomist.source.FileArtifact;
 import com.atomist.tree.TreeMaterializer;
 import com.atomist.tree.content.project.ResourceSpecifier;
 import com.atomist.tree.content.project.SimpleResourceSpecifier;
-import scala.Option;
-import scala.collection.JavaConverters;
-import scala.collection.Seq;
-import scala.runtime.AbstractFunction1;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,9 +50,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static java.util.Comparator.comparing;
-import static scala.collection.JavaConverters.asJavaCollectionConverter;
-import static scala.collection.JavaConverters.asScalaBufferConverter;
+import scala.Option;
+import scala.collection.JavaConverters;
+import scala.collection.Seq;
+import scala.runtime.AbstractFunction1;
 
 public class DecoratingRugLoader extends BaseRugLoader {
 
@@ -60,11 +61,9 @@ public class DecoratingRugLoader extends BaseRugLoader {
         super(resolver, teamId, trees);
     }
 
-
     @Override
-    protected Rugs postProcess(ArtifactDescriptor artifact,
-                               Rugs operations,
-                               ArtifactSource source) {
+    protected Rugs postProcess(ArtifactDescriptor artifact, Rugs operations,
+            ArtifactSource source) {
 
         List<ParameterValue> additionalPvs = Collections.emptyList();
 
@@ -84,37 +83,33 @@ public class DecoratingRugLoader extends BaseRugLoader {
                 .map(g -> new DecoratedProjectReviewer(g, gav, additionalPvs, source))
                 .sorted(Comparator.comparing(Rug::name)).collect(Collectors.toList());
 
-        List<CommandHandler> commandHandlers = asJavaCollectionConverter(operations.commandHandlers())
-                .asJavaCollection().stream()
-                .map(g -> new DecoratedCommandHandler(g, gav, source))
-                .sorted(Comparator.comparing(Rug::name)).collect(Collectors.toList());
+        List<CommandHandler> commandHandlers = asJavaCollectionConverter(
+                operations.commandHandlers()).asJavaCollection().stream()
+                        .map(g -> new DecoratedCommandHandler(g, gav, source))
+                        .sorted(Comparator.comparing(Rug::name)).collect(Collectors.toList());
 
         List<EventHandler> eventHandlers = asJavaCollectionConverter(operations.eventHandlers())
-                .asJavaCollection().stream()
-                .map(g -> new DecoratedEventHandler(g, gav, source))
+                .asJavaCollection().stream().map(g -> new DecoratedEventHandler(g, gav, source))
                 .sorted(Comparator.comparing(Rug::name)).collect(Collectors.toList());
 
-        List<ResponseHandler> responseHandlers = asJavaCollectionConverter(operations.responseHandlers())
-                .asJavaCollection().stream()
-                .map(g -> new DecoratedResponseHandler(g, gav, source))
-                .sorted(Comparator.comparing(Rug::name)).collect(Collectors.toList());
+        List<ResponseHandler> responseHandlers = asJavaCollectionConverter(
+                operations.responseHandlers()).asJavaCollection().stream()
+                        .map(g -> new DecoratedResponseHandler(g, gav, source))
+                        .sorted(Comparator.comparing(Rug::name)).collect(Collectors.toList());
 
-        return new Rugs(
-                asScalaBufferConverter(editors).asScala().toSeq(),
+        return new Rugs(asScalaBufferConverter(editors).asScala().toSeq(),
                 asScalaBufferConverter(generators).asScala().toSeq(),
                 asScalaBufferConverter(reviewers).asScala().toSeq(),
                 asScalaBufferConverter(commandHandlers).asScala().toSeq(),
                 asScalaBufferConverter(eventHandlers).asScala().toSeq(),
-                asScalaBufferConverter(responseHandlers).asScala().toSeq()
-        );
+                asScalaBufferConverter(responseHandlers).asScala().toSeq());
     }
 
     /**
      * A Rug that is addressable via mvn and github coorindates
      * @param <T>
      */
-    public static class ProvenanceDeocoratingRug<T extends Rug>
-        implements ProvenanceInfo {
+    public static class ProvenanceDeocoratingRug<T extends Rug> implements ProvenanceInfo {
 
         private T delegate;
 
@@ -123,7 +118,8 @@ public class DecoratingRugLoader extends BaseRugLoader {
         private String branch;
         private String sha;
 
-        public ProvenanceDeocoratingRug(T delegate, ResourceSpecifier gav, ArtifactSource artifactSource) {
+        public ProvenanceDeocoratingRug(T delegate, ResourceSpecifier gav,
+                ArtifactSource artifactSource) {
             this.delegate = delegate;
             this.gav = gav;
             init(artifactSource);
@@ -192,11 +188,10 @@ public class DecoratingRugLoader extends BaseRugLoader {
 
     /**
      * Add some extra parameters to an already parameterized rug
-
+     * 
      */
-    public static class ParameterizedDecoratingRug<T extends ParameterizedRug>
-        extends ProvenanceDeocoratingRug<ParameterizedRug>
-            implements ParameterizedAddressableRug {
+    public static class ParameterizedDecoratingRug<T extends ParameterizedRug> extends
+            ProvenanceDeocoratingRug<ParameterizedRug> implements ParameterizedAddressableRug {
 
         private T delegate;
 
@@ -204,13 +199,12 @@ public class DecoratingRugLoader extends BaseRugLoader {
         protected List<Parameter> additionalParameters;
 
         public ParameterizedDecoratingRug(T delegate, ResourceSpecifier gav,
-                                          List<ParameterValue> additionalParameterValues, ArtifactSource artifactSource) {
-            super(delegate,gav,artifactSource);
+                List<ParameterValue> additionalParameterValues, ArtifactSource artifactSource) {
+            super(delegate, gav, artifactSource);
             this.delegate = delegate;
             this.additionalParameterValues = new ArrayList<>(additionalParameterValues);
             this.additionalParameters = new ArrayList<>();
         }
-
 
         @Override
         public Seq<Parameter> parameters() {
@@ -221,9 +215,7 @@ public class DecoratingRugLoader extends BaseRugLoader {
             return JavaConverters.asScalaBufferConverter(parameters).asScala();
         }
 
-
-        protected ParameterValues decorateParameterValues(
-                ParameterValues poa) {
+        protected ParameterValues decorateParameterValues(ParameterValues poa) {
             return new ParameterValues() {
 
                 @Override
@@ -278,14 +270,13 @@ public class DecoratingRugLoader extends BaseRugLoader {
     /**
      * Add ParameterizedDecoratingRug to a ProjectEditor
      */
-    private static class DecoratedProjectEditor
-            extends ParameterizedDecoratingRug<ProjectEditor>
+    private static class DecoratedProjectEditor extends ParameterizedDecoratingRug<ProjectEditor>
             implements ProjectEditor {
 
         private ProjectEditor delegate;
 
         public DecoratedProjectEditor(ProjectEditor delegate, ResourceSpecifier gav,
-                                      List<ParameterValue> additionalParameters, ArtifactSource source) {
+                List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
             this.delegate = delegate;
         }
@@ -339,8 +330,9 @@ public class DecoratingRugLoader extends BaseRugLoader {
         private boolean hasOwnProjectNameParameter = false;
 
         private ProjectGenerator delegate;
+
         public DecoratedProjectGenerator(ProjectGenerator delegate, ResourceSpecifier gav,
-                                         List<ParameterValue> additionalParameters, ArtifactSource source) {
+                List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
             this.delegate = delegate;
             init();
@@ -349,8 +341,8 @@ public class DecoratingRugLoader extends BaseRugLoader {
 
         private void init() {
             this.hasOwnProjectNameParameter = JavaConverters
-                    .asJavaCollectionConverter(delegate.parameters()).asJavaCollection()
-                    .stream().anyMatch(p -> p.getName().equals(PROJECT_NAME_PARAMETER_NAME));
+                    .asJavaCollectionConverter(delegate.parameters()).asJavaCollection().stream()
+                    .anyMatch(p -> p.getName().equals(PROJECT_NAME_PARAMETER_NAME));
             if (!this.hasOwnProjectNameParameter) {
                 this.additionalParameters.add(PROJECT_NAME_PARAMETER);
             }
@@ -367,11 +359,11 @@ public class DecoratingRugLoader extends BaseRugLoader {
                 if (projectNamePv.isPresent()) {
                     pvs = pvs.stream().filter(p -> !p.getName().equals(PROJECT_NAME_PARAMETER_NAME))
                             .collect(Collectors.toList());
-                    poa = new SimpleParameterValues(JavaConverters.asScalaBufferConverter(pvs).asScala());
+                    poa = new SimpleParameterValues(
+                            JavaConverters.asScalaBufferConverter(pvs).asScala());
                 }
             }
-            ArtifactSource source = delegate.generate(projectName,
-                    decorateParameterValues(poa));
+            ArtifactSource source = delegate.generate(projectName, decorateParameterValues(poa));
             return source.filter(new AbstractFunction1<DirectoryArtifact, Object>() {
                 @Override
                 public Object apply(DirectoryArtifact dir) {
@@ -379,8 +371,8 @@ public class DecoratingRugLoader extends BaseRugLoader {
                     if (dir.name().equals("META-INF")) {
                         Optional<Artifact> nonMavenArtifact = asJavaCollectionConverter(
                                 dir.artifacts()).asJavaCollection().stream()
-                                .filter(a -> !a.path().startsWith("META-INF/maven"))
-                                .findAny();
+                                        .filter(a -> !a.path().startsWith("META-INF/maven"))
+                                        .findAny();
                         return nonMavenArtifact.isPresent();
                     }
                     return (!dir.path().equals("META-INF/maven"));
@@ -403,7 +395,7 @@ public class DecoratingRugLoader extends BaseRugLoader {
         private ProjectReviewer delegate;
 
         public DecoratedProjectReviewer(ProjectReviewer delegate, ResourceSpecifier gav,
-                                        List<ParameterValue> additionalParameters, ArtifactSource source) {
+                List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
             this.delegate = delegate;
         }
@@ -414,16 +406,14 @@ public class DecoratingRugLoader extends BaseRugLoader {
         }
     }
 
-    private static class DecoratedEventHandler
-            extends ProvenanceDeocoratingRug<EventHandler>
+    private static class DecoratedEventHandler extends ProvenanceDeocoratingRug<EventHandler>
             implements EventHandler {
 
         private EventHandler delegate;
 
-        public DecoratedEventHandler(EventHandler delegate,
-                                     ResourceSpecifier gav,
-                                     ArtifactSource artifactSource) {
-            super(delegate,gav,artifactSource);
+        public DecoratedEventHandler(EventHandler delegate, ResourceSpecifier gav,
+                ArtifactSource artifactSource) {
+            super(delegate, gav, artifactSource);
             this.delegate = delegate;
         }
 
@@ -441,22 +431,20 @@ public class DecoratingRugLoader extends BaseRugLoader {
     /**
      * Add Provenance to a CommandHandler
      */
-    private static class DecoratedCommandHandler
-            extends ParameterizedDecoratingRug<CommandHandler>
+    private static class DecoratedCommandHandler extends ParameterizedDecoratingRug<CommandHandler>
             implements CommandHandler {
 
         private CommandHandler delegate;
 
-        public DecoratedCommandHandler(CommandHandler delegate,
-                                     ResourceSpecifier gav,
-                                     ArtifactSource artifactSource) {
-            super(delegate,gav, Collections.emptyList(), artifactSource);
+        public DecoratedCommandHandler(CommandHandler delegate, ResourceSpecifier gav,
+                ArtifactSource artifactSource) {
+            super(delegate, gav, Collections.emptyList(), artifactSource);
             this.delegate = delegate;
         }
 
         @Override
         public Option<Handlers.Plan> handle(CommandContext ctx, ParameterValues params) {
-            return delegate.handle(ctx,params);
+            return delegate.handle(ctx, params);
         }
 
         @Override
@@ -469,21 +457,19 @@ public class DecoratingRugLoader extends BaseRugLoader {
      * Add Provenance to a ResponseHandler
      */
     private static class DecoratedResponseHandler
-            extends ParameterizedDecoratingRug<ResponseHandler>
-            implements ResponseHandler {
+            extends ParameterizedDecoratingRug<ResponseHandler> implements ResponseHandler {
 
         private ResponseHandler delegate;
 
-        public DecoratedResponseHandler(ResponseHandler delegate,
-                                       ResourceSpecifier gav,
-                                       ArtifactSource artifactSource) {
-            super(delegate,gav,Collections.emptyList(), artifactSource);
+        public DecoratedResponseHandler(ResponseHandler delegate, ResourceSpecifier gav,
+                ArtifactSource artifactSource) {
+            super(delegate, gav, Collections.emptyList(), artifactSource);
             this.delegate = delegate;
         }
 
         @Override
         public Option<Handlers.Plan> handle(InstructionResponse response, ParameterValues params) {
-            return delegate.handle(response,params);
+            return delegate.handle(response, params);
         }
     }
 }

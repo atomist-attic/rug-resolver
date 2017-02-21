@@ -14,15 +14,15 @@ public class ManifestWriter {
         if (manifest.dependencies() != null && manifest.dependencies().size() > 0) {
             sb.append("\n");
             sb.append("dependencies:\n");
-            manifest.dependencies().forEach(d -> sb
-                    .append(String.format("  - \"%s:%s:%s\"\n", d.group(), d.artifact(), d.version())));
+            manifest.dependencies().forEach(d -> sb.append(
+                    String.format("  - \"%s:%s:%s\"\n", d.group(), d.artifact(), d.version())));
         }
 
         if (manifest.extensions() != null && manifest.extensions().size() > 0) {
             sb.append("\n");
             sb.append("extensions:\n");
-            manifest.extensions().forEach(d -> sb
-                    .append(String.format("  - \"%s:%s:%s\"\n", d.group(), d.artifact(), d.version())));
+            manifest.extensions().forEach(d -> sb.append(
+                    String.format("  - \"%s:%s:%s\"\n", d.group(), d.artifact(), d.version())));
         }
 
         if (manifest.repositories() != null && manifest.repositories().size() > 0) {

@@ -6,14 +6,16 @@ import com.atomist.rug.resolver.manifest.Manifest;
 import com.atomist.source.ArtifactSource;
 import com.atomist.source.FileArtifact;
 import com.atomist.source.file.FileSystemArtifactSourceIdentifier;
-import org.yaml.snakeyaml.Yaml;
-import scala.Option;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+
+import org.yaml.snakeyaml.Yaml;
+
+import scala.Option;
 
 public abstract class ProvenanceInfoArtifactSourceReader {
 
@@ -57,8 +59,8 @@ public abstract class ProvenanceInfoArtifactSourceReader {
                         .read(rootFile);
                 if (detailsOptional.isPresent()) {
                     RepositoryDetails details = detailsOptional.get();
-                    return Optional.of(new SimpleGitInfo(details.repo(), details.branch(),
-                            details.sha()));
+                    return Optional
+                            .of(new SimpleGitInfo(details.repo(), details.branch(), details.sha()));
                 }
             }
             catch (IOException e) {

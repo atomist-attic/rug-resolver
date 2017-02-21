@@ -7,7 +7,7 @@ public class MissingManifestException extends RuntimeException {
     public MissingManifestException(String msg, String... tokens) {
         super(String.format(msg, (Object[]) tokens));
     }
-    
+
     public MissingManifestException(String msg, Exception e) {
         super(msg, e);
     }

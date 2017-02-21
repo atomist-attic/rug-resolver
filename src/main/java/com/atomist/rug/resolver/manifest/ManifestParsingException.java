@@ -7,7 +7,7 @@ public class ManifestParsingException extends RuntimeException {
     public ManifestParsingException(String msg, String... tokens) {
         super(String.format(msg, (Object[]) tokens));
     }
-    
+
     public ManifestParsingException(String msg, Exception e) {
         super(msg, e);
     }

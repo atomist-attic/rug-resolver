@@ -1,5 +1,8 @@
 package com.atomist.rug.resolver.manifest;
 
+import com.atomist.rug.resolver.ArtifactDescriptor;
+import com.atomist.rug.resolver.ArtifactDescriptor.Extension;
+
 import java.io.IOException;
 import java.io.StringWriter;
 
@@ -7,9 +10,6 @@ import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Repository;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
-
-import com.atomist.rug.resolver.ArtifactDescriptor;
-import com.atomist.rug.resolver.ArtifactDescriptor.Extension;
 
 public class ManifestPomWriter {
 
@@ -79,7 +79,7 @@ public class ManifestPomWriter {
             rugArchive.setVersion(d.version());
             rugArchive.setType("zip");
             model.addDependency(rugArchive);
-            
+
             // add dependency on metadata.json to pom model
             Dependency rugArchiveMetadata = new Dependency();
             rugArchiveMetadata.setGroupId(d.group());

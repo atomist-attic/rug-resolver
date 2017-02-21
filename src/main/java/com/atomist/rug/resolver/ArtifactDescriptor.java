@@ -14,7 +14,7 @@ public interface ArtifactDescriptor {
     Extension extension();
 
     Scope scope();
-    
+
     String classifier();
 
     URI uri();

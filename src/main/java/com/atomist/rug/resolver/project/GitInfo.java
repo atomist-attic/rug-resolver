@@ -5,6 +5,8 @@ package com.atomist.rug.resolver.project;
  */
 public interface GitInfo {
     String repo();
+
     String branch();
+
     String sha();
 }
