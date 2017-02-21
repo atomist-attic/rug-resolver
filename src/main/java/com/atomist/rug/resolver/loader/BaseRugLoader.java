@@ -1,8 +1,5 @@
 package com.atomist.rug.resolver.loader;
 
-import static scala.collection.JavaConverters.asJavaCollectionConverter;
-import static scala.collection.JavaConverters.asScalaBufferConverter;
-
 import com.atomist.project.archive.DefaultAtomistConfig$;
 import com.atomist.project.archive.DefaultRugArchiveReader;
 import com.atomist.project.archive.Rugs;
@@ -28,6 +25,10 @@ import com.atomist.source.file.SimpleFileSystemArtifactSourceIdentifier;
 import com.atomist.source.file.ZipFileArtifactSourceReader;
 import com.atomist.source.file.ZipFileInput;
 import com.atomist.tree.TreeMaterializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
+import scala.Option;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,11 +37,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.util.StringUtils;
-
-import scala.Option;
+import static scala.collection.JavaConverters.asJavaCollectionConverter;
+import static scala.collection.JavaConverters.asScalaBufferConverter;
 
 /**
  * Common stuff for loading operations/handlers
@@ -52,12 +50,10 @@ abstract class BaseRugLoader implements RugLoader {
     private final DependencyResolver resolver;
 
     private String teamId;
-    private TreeMaterializer trees;
 
-    public BaseRugLoader(DependencyResolver resolver, String teamId, TreeMaterializer trees) {
+    public BaseRugLoader(DependencyResolver resolver, String teamId) {
         this.resolver = resolver;
         this.teamId = teamId;
-        this.trees = trees;
     }
 
     @Override
@@ -219,7 +215,7 @@ abstract class BaseRugLoader implements RugLoader {
     }
 
     protected DefaultRugArchiveReader operationsReader() {
-        return new DefaultRugArchiveReader(teamId, trees, DefaultAtomistConfig$.MODULE$,
+        return new DefaultRugArchiveReader(teamId, DefaultAtomistConfig$.MODULE$,
                 new DefaultEvaluator(new EmptyRugDslFunctionRegistry()),
                 DefaultTypeRegistry$.MODULE$);
     }

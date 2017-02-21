@@ -1,9 +1,5 @@
 package com.atomist.rug.resolver.loader;
 
-import static java.util.Comparator.comparing;
-import static scala.collection.JavaConverters.asJavaCollectionConverter;
-import static scala.collection.JavaConverters.asScalaBufferConverter;
-
 import com.atomist.param.Parameter;
 import com.atomist.param.ParameterValue;
 import com.atomist.param.ParameterValues;
@@ -24,7 +20,6 @@ import com.atomist.rug.resolver.project.GitInfo;
 import com.atomist.rug.resolver.project.ParameterizedAddressableRug;
 import com.atomist.rug.resolver.project.ProvenanceInfo;
 import com.atomist.rug.resolver.project.ProvenanceInfoArtifactSourceReader;
-import com.atomist.rug.runtime.CommandContext;
 import com.atomist.rug.runtime.CommandHandler;
 import com.atomist.rug.runtime.EventHandler;
 import com.atomist.rug.runtime.InstructionResponse;
@@ -32,14 +27,18 @@ import com.atomist.rug.runtime.ParameterizedRug;
 import com.atomist.rug.runtime.ResponseHandler;
 import com.atomist.rug.runtime.Rug;
 import com.atomist.rug.runtime.SystemEvent;
+import com.atomist.rug.runtime.js.interop.RugContext;
 import com.atomist.rug.spi.Handlers;
 import com.atomist.source.Artifact;
 import com.atomist.source.ArtifactSource;
 import com.atomist.source.DirectoryArtifact;
 import com.atomist.source.FileArtifact;
-import com.atomist.tree.TreeMaterializer;
 import com.atomist.tree.content.project.ResourceSpecifier;
 import com.atomist.tree.content.project.SimpleResourceSpecifier;
+import scala.Option;
+import scala.collection.JavaConverters;
+import scala.collection.Seq;
+import scala.runtime.AbstractFunction1;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,15 +49,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import scala.Option;
-import scala.collection.JavaConverters;
-import scala.collection.Seq;
-import scala.runtime.AbstractFunction1;
+import static java.util.Comparator.comparing;
+import static scala.collection.JavaConverters.asJavaCollectionConverter;
+import static scala.collection.JavaConverters.asScalaBufferConverter;
 
 public class DecoratingRugLoader extends BaseRugLoader {
 
-    public DecoratingRugLoader(DependencyResolver resolver, String teamId, TreeMaterializer trees) {
-        super(resolver, teamId, trees);
+    public DecoratingRugLoader(DependencyResolver resolver, String teamId) {
+        super(resolver, teamId);
     }
 
     @Override
@@ -418,8 +416,8 @@ public class DecoratingRugLoader extends BaseRugLoader {
         }
 
         @Override
-        public Option<Handlers.Plan> handle(SystemEvent event) {
-            return delegate.handle(event);
+        public Option<Handlers.Plan> handle(RugContext ctx, SystemEvent event) {
+            return delegate.handle(ctx, event);
         }
 
         @Override
@@ -443,7 +441,7 @@ public class DecoratingRugLoader extends BaseRugLoader {
         }
 
         @Override
-        public Option<Handlers.Plan> handle(CommandContext ctx, ParameterValues params) {
+        public Option<Handlers.Plan> handle(RugContext ctx, ParameterValues params) {
             return delegate.handle(ctx, params);
         }
 
