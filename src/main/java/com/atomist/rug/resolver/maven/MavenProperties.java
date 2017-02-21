@@ -20,14 +20,14 @@ public class MavenProperties {
     private List<String> exclusions = new ArrayList<>();
     private boolean offline = false;
     private boolean cacheMetadata = true;
-    
+
     private String repoLocation = System.getProperty("java.io.tmpdir") + "/.m2/repository/"
             + UUID.randomUUID().toString();
-    
+
     public List<String> getExclusions() {
         return exclusions;
     }
-    
+
     public void setExclusions(List<String> exclusions) {
         this.exclusions = exclusions;
     }
@@ -60,7 +60,7 @@ public class MavenProperties {
     public void setOffline(boolean offline) {
         this.offline = offline;
     }
-    
+
     public void setCacheMetadata(boolean cacheMetadata) {
         this.cacheMetadata = cacheMetadata;
     }
@@ -72,7 +72,7 @@ public class MavenProperties {
     public boolean isOffline() {
         return offline;
     }
-    
+
     public boolean isCacheMetadata() {
         return cacheMetadata;
     }

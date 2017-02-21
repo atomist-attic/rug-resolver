@@ -1,5 +1,7 @@
 package com.atomist.rug.resolver;
 
+import com.atomist.rug.resolver.manifest.Manifest;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -13,9 +15,6 @@ import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.io.FileUtils;
-
-import com.atomist.rug.manifest.Manifest;
-import com.atomist.rug.resolver.ArtifactDescriptor.Scope;
 
 /**
  * {@link DependencyResolver} that adds caching semantics on top of a wrapped
@@ -144,8 +143,8 @@ public class CachingDependencyResolver implements DependencyResolver {
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split("#");
                 dependencies.add(new DefaultArtifactDescriptor(parts[0], parts[1], parts[2],
-                        ArtifactDescriptorFactory.toExtension(parts[3]), Scope.COMPILE,
-                        URI.create(parts[4])));
+                        ArtifactDescriptorFactory.toExtension(parts[3]),
+                        ArtifactDescriptor.Scope.COMPILE, URI.create(parts[4])));
             }
         }
         catch (FileNotFoundException e) {

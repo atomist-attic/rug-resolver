@@ -14,7 +14,7 @@ public class DefaultArtifactDescriptor implements ArtifactDescriptor {
     private final Scope scope;
     private final String classifier;
     private List<ArtifactDescriptor> dependencies = new ArrayList<>();
-    
+
     public DefaultArtifactDescriptor(String group, String artifact, String version,
             Extension extension) {
         this(group, artifact, version, extension, Scope.COMPILE, null, null);
@@ -65,7 +65,7 @@ public class DefaultArtifactDescriptor implements ArtifactDescriptor {
     public URI uri() {
         return uri;
     }
-    
+
     @Override
     public String classifier() {
         return classifier;
@@ -76,7 +76,7 @@ public class DefaultArtifactDescriptor implements ArtifactDescriptor {
         return this.group.equals(group) && this.artifact.equals(artifact)
                 && this.version.equals(version) && this.extension.equals(extension);
     }
-    
+
     public List<ArtifactDescriptor> dependencies() {
         return dependencies;
     }

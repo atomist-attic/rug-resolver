@@ -1,5 +1,7 @@
 package com.atomist.rug.resolver.maven;
 
+import com.atomist.rug.resolver.concurrent.MdcThreadPoolExecutor;
+
 import java.util.concurrent.ExecutorService;
 
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
@@ -16,8 +18,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import com.atomist.concurrent.MdcThreadPoolExecutor;
 
 import io.takari.filemanager.FileManager;
 import io.takari.filemanager.internal.DefaultFileManager;
