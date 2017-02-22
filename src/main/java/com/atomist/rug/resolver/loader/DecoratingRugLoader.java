@@ -29,6 +29,7 @@ import com.atomist.rug.runtime.Rug;
 import com.atomist.rug.runtime.SystemEvent;
 import com.atomist.rug.runtime.js.RugContext;
 import com.atomist.rug.spi.Handlers;
+import com.atomist.rug.spi.Secret;
 import com.atomist.source.Artifact;
 import com.atomist.source.ArtifactSource;
 import com.atomist.source.DirectoryArtifact;
@@ -449,6 +450,9 @@ public class DecoratingRugLoader extends BaseRugLoader {
         public Seq<String> intent() {
             return delegate.intent();
         }
+
+        @Override
+        public Seq<Secret> secrets() { return delegate.secrets(); }
     }
 
     /**
