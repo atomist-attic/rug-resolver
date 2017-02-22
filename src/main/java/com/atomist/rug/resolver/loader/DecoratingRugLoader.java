@@ -1,5 +1,6 @@
 package com.atomist.rug.resolver.loader;
 
+import com.atomist.param.MappedParameter;
 import com.atomist.param.Parameter;
 import com.atomist.param.ParameterValue;
 import com.atomist.param.ParameterValues;
@@ -453,6 +454,11 @@ public class DecoratingRugLoader extends BaseRugLoader {
 
         @Override
         public Seq<Secret> secrets() { return delegate.secrets(); }
+
+        @Override
+        public Seq<MappedParameter> mappedParameters() {
+            return delegate.mappedParameters();
+        }
     }
 
     /**
