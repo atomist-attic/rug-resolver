@@ -27,7 +27,7 @@ import com.atomist.rug.runtime.ParameterizedRug;
 import com.atomist.rug.runtime.ResponseHandler;
 import com.atomist.rug.runtime.Rug;
 import com.atomist.rug.runtime.SystemEvent;
-import com.atomist.rug.runtime.js.interop.RugContext;
+import com.atomist.rug.runtime.js.RugContext;
 import com.atomist.rug.spi.Handlers;
 import com.atomist.source.Artifact;
 import com.atomist.source.ArtifactSource;
