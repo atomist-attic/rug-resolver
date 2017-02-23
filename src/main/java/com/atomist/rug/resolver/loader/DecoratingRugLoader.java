@@ -215,6 +215,31 @@ public class DecoratingRugLoader extends BaseRugLoader {
             return JavaConverters.asScalaBufferConverter(parameters).asScala();
         }
 
+        @Override
+        public ParameterValues addDefaultParameterValues(ParameterValues pvs) {
+            return delegate.addDefaultParameterValues(pvs);
+        }
+
+        @Override
+        public void validateParameters(ParameterValues poa) throws InvalidParametersException {
+            delegate.validateParameters(poa);
+        }
+
+        @Override
+        public Seq<Parameter> findMissingParameters(ParameterValues pvs) {
+            return delegate.findMissingParameters(pvs);
+        }
+
+        @Override
+        public Seq<ParameterValue> findInvalidParameterValues(ParameterValues pvs) {
+            return delegate.findInvalidParameterValues(pvs);
+        }
+
+        @Override
+        public boolean areValid(ParameterValues pvs) {
+            return delegate.areValid(pvs);
+        }
+
         protected ParameterValues decorateParameterValues(ParameterValues poa) {
             return new ParameterValues() {
 
