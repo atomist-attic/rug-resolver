@@ -269,12 +269,12 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
         return artifacts;
     }
 
-    private String getLatestVersion(String groupId, String artifactId,
+    private String getLatestVersion(String groupId, String artifactId, String range,
             RepositorySystemSession session, List<RemoteRepository> remotes)
             throws VersionRangeResolutionException {
         VersionRangeRequest rangeRequest = new VersionRangeRequest();
         rangeRequest.setArtifact(
-                new DefaultArtifact(String.format("%s:%s:%s", groupId, artifactId, "[,)")));
+                new DefaultArtifact(String.format("%s:%s:%s", groupId, artifactId, range)));
         rangeRequest.setRepositories(remotes);
 
         VersionRangeResult rangeResult = repoSystem.resolveVersionRange(session, rangeRequest);
@@ -293,12 +293,25 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
         String version = artifact.version();
         if ("latest".equals(version)) {
             try {
-                version = getLatestVersion(artifact.group(), artifact.artifact(), session, remotes);
+                version = getLatestVersion(artifact.group(), artifact.artifact(), "[,)", session,
+                        remotes);
             }
             catch (VersionRangeResolutionException e) {
                 throw new DependencyResolverException(
                         String.format("Failed to calculate latest version for %s:%s",
                                 artifact.group(), artifact.artifact()),
+                        e);
+            }
+        }
+        else if (version.startsWith("(") || version.startsWith("[")) {
+            try {
+                version = getLatestVersion(artifact.group(), artifact.artifact(), version, session,
+                        remotes);
+            }
+            catch (VersionRangeResolutionException e) {
+                throw new DependencyResolverException(
+                        String.format("Failed to calculate version for %s:%s and range %s",
+                                artifact.group(), artifact.artifact(), version),
                         e);
             }
         }
