@@ -250,21 +250,6 @@ public class DecoratingRugLoader extends BaseRugLoader {
                 }
             };
         }
-
-        @Override
-        public boolean areValid(ParameterValues pvs) {
-            return delegate.areValid(pvs);
-        }
-
-        @Override
-        public Seq<ParameterValue> findInvalidParameterValues(ParameterValues pvs) {
-            return delegate.findInvalidParameterValues(pvs);
-        }
-
-        @Override
-        public Seq<Parameter> findMissingParameters(ParameterValues pvs) {
-            return delegate.findMissingParameters(pvs);
-        }
     }
 
     /**
