@@ -102,13 +102,13 @@ public abstract class MetadataWriter {
         @JsonProperty
         private List<ProjectOperation> reviewers;
 
-        @JsonProperty
+        @JsonProperty("event-handlers")
         private List<EventHandler> eventHandlers;
 
-        @JsonProperty
+        @JsonProperty("command-handlers")
         private List<CommandHandler> commandHandlers;
 
-        @JsonProperty
+        @JsonProperty("response-handlers")
         private List<ResponseHandler> responseHandlers;
 
         public ArchiveMetadata(Rugs rugs, ArtifactDescriptor artifact, GitInfo info) {
