@@ -4,7 +4,7 @@ import com.atomist.param.ParameterValues
 import com.atomist.project.edit.ProjectEditor
 import com.atomist.project.generate.ProjectGenerator
 import com.atomist.project.ProjectOperation
-import com.atomist.source.{ArtifactSource, StringFileArtifact}
+import com.atomist.source.{ ArtifactSource, StringFileArtifact }
 import org.springframework.stereotype.Component
 
 @Component
@@ -23,7 +23,15 @@ class ProvenanceInfoWriter {
       case None => content
     }
 
-    projectSource.+(StringFileArtifact.apply(ProvenanceFile, updatedContent))
+    // Make sure to delete the .atomist.yml in case of a generator before creating the new file
+    // because we are not interested in the history of the rug archive to show up in the generated project
+    val source = po match {
+      case g: ProjectGenerator =>
+        projectSource.delete(ProvenanceFile)
+      case _ => projectSource
+    }
+
+    source.+(StringFileArtifact.apply(ProvenanceFile, updatedContent))
   }
 
   // how do we add that a Handler initiated the editor/generator?
@@ -45,14 +53,14 @@ class ProvenanceInfoWriter {
     po match {
       case p: ProvenanceInfo =>
         content.append(s"""  name: "${p.name}"\n""")
-        content.append(s"""  group: "${extract(p.group)}""")
-        content.append(s"""  artifact: "${extract(p.artifact)}"""")
-        content.append(s"""  version: "${extract(p.version)}""")
+        content.append(s"""  group: "${extract(p.group)}"\n""")
+        content.append(s"""  artifact: "${extract(p.artifact)}"\n""")
+        content.append(s"""  version: "${extract(p.version)}"\n""")
 
         content.append(s"""  origin:\n""")
-        content.append(s"""    repo: "${extract(p.repo())}""")
-        content.append(s"""    branch: "${extract(p.branch())}""")
-        content.append(s"""    sha: "${extract(p.sha())}""")
+        content.append(s"""    repo: "${extract(p.repo())}"\n""")
+        content.append(s"""    branch: "${extract(p.branch())}"\n""")
+        content.append(s"""    sha: "${extract(p.sha())}"\n""")
       case _ =>
     }
 
@@ -76,10 +84,11 @@ class ProvenanceInfoWriter {
     content.append("\n")
     content.toString()
   }
+
   private def extract(someVal: String): String = {
-    if(someVal == null){
-      "n/a\n"
-    }else{
+    if (someVal == null) {
+      "n/a"
+    } else {
       someVal
     }
   }
