@@ -23,7 +23,6 @@ import com.atomist.rug.resolver.project.ProvenanceInfo;
 import com.atomist.rug.resolver.project.ProvenanceInfoArtifactSourceReader;
 import com.atomist.rug.runtime.CommandHandler;
 import com.atomist.rug.runtime.EventHandler;
-import com.atomist.rug.runtime.InstructionResponse;
 import com.atomist.rug.runtime.ParameterizedRug;
 import com.atomist.rug.runtime.ResponseHandler;
 import com.atomist.rug.runtime.Rug;
@@ -486,7 +485,7 @@ public class DecoratingRugLoader extends BaseRugLoader {
         }
 
         @Override
-        public Option<Handlers.Plan> handle(InstructionResponse response, ParameterValues params) {
+        public Option<Handlers.Plan> handle(Handlers.Response response, ParameterValues params) {
             return delegate.handle(response, params);
         }
     }
