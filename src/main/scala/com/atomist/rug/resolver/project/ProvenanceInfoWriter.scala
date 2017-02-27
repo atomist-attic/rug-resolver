@@ -16,19 +16,19 @@ class ProvenanceInfoWriter {
   def write(projectSource: ArtifactSource, po: ProjectOperation, poa: ParameterValues, client: String): ArtifactSource = {
 
     val content = write(po, poa, client)
-
-    val provenanceFile = projectSource.findFile(ProvenanceFile)
-    val updatedContent = provenanceFile match {
-      case Some(existingContent) => existingContent.content + content
-      case None => content
-    }
-
+    
     // Make sure to delete the .atomist.yml in case of a generator before creating the new file
     // because we are not interested in the history of the rug archive to show up in the generated project
     val source = po match {
       case g: ProjectGenerator =>
         projectSource.delete(ProvenanceFile)
       case _ => projectSource
+    }
+    
+    val provenanceFile = source.findFile(ProvenanceFile)
+    val updatedContent = provenanceFile match {
+      case Some(existingContent) => existingContent.content + content
+      case None => content
     }
 
     source.+(StringFileArtifact.apply(ProvenanceFile, updatedContent))
