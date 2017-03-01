@@ -6,6 +6,8 @@ import com.atomist.param.ParameterValue;
 import com.atomist.param.ParameterValues;
 import com.atomist.param.SimpleParameterValues;
 import com.atomist.param.Tag;
+import com.atomist.project.archive.DefaultAtomistConfig$;
+import com.atomist.project.archive.DefaultRugArchiveReader;
 import com.atomist.project.archive.Rugs;
 import com.atomist.project.common.InvalidParametersException;
 import com.atomist.project.common.MissingParametersException;
@@ -15,101 +17,116 @@ import com.atomist.project.edit.ProjectEditor;
 import com.atomist.project.generate.ProjectGenerator;
 import com.atomist.project.review.ProjectReviewer;
 import com.atomist.project.review.ReviewResult;
+import com.atomist.rug.EmptyRugDslFunctionRegistry;
+import com.atomist.rug.RugRuntimeException;
+import com.atomist.rug.kind.DefaultTypeRegistry$;
 import com.atomist.rug.resolver.ArtifactDescriptor;
+import com.atomist.rug.resolver.ArtifactDescriptorFactory;
+import com.atomist.rug.resolver.DefaultArtifactDescriptor;
 import com.atomist.rug.resolver.DependencyResolver;
+import com.atomist.rug.resolver.DependencyResolverException;
 import com.atomist.rug.resolver.project.GitInfo;
 import com.atomist.rug.resolver.project.ParameterizedAddressableRug;
 import com.atomist.rug.resolver.project.ProvenanceInfo;
 import com.atomist.rug.resolver.project.ProvenanceInfoArtifactSourceReader;
+import com.atomist.rug.runtime.AddressableRug;
 import com.atomist.rug.runtime.CommandHandler;
 import com.atomist.rug.runtime.EventHandler;
-import com.atomist.rug.runtime.InstructionResponse;
 import com.atomist.rug.runtime.ParameterizedRug;
 import com.atomist.rug.runtime.ResponseHandler;
 import com.atomist.rug.runtime.Rug;
 import com.atomist.rug.runtime.SystemEvent;
 import com.atomist.rug.runtime.js.RugContext;
+import com.atomist.rug.runtime.rugdsl.DefaultEvaluator;
 import com.atomist.rug.spi.Handlers;
 import com.atomist.rug.spi.Secret;
 import com.atomist.source.Artifact;
 import com.atomist.source.ArtifactSource;
 import com.atomist.source.DirectoryArtifact;
 import com.atomist.source.FileArtifact;
+import com.atomist.source.file.FileSystemArtifactSource;
+import com.atomist.source.file.SimpleFileSystemArtifactSourceIdentifier;
+import com.atomist.source.file.ZipFileArtifactSourceReader;
+import com.atomist.source.file.ZipFileInput;
 import com.atomist.tree.content.project.ResourceSpecifier;
 import com.atomist.tree.content.project.SimpleResourceSpecifier;
+import com.typesafe.scalalogging.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 import scala.Option;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
+import scala.collection.mutable.ListBuffer;
 import scala.runtime.AbstractFunction1;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static java.util.Comparator.comparing;
 import static scala.collection.JavaConverters.asJavaCollectionConverter;
 import static scala.collection.JavaConverters.asScalaBufferConverter;
 
-public class DecoratingRugLoader extends BaseRugLoader {
+/**
+ * Decorate rugs as we load them with provenance information
+ */
+public class ProvenanceAddingRugLoader implements RugLoader{
 
-    public DecoratingRugLoader(DependencyResolver resolver) {
-        super(resolver);
+
+    private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(ProvenanceAddingRugLoader.class);
+
+    private final DependencyResolver resolver;
+
+    public ProvenanceAddingRugLoader(DependencyResolver resolver) {
+        this.resolver = resolver;
     }
 
-    @Override
-    protected Rugs postProcess(ArtifactDescriptor artifact, Rugs operations,
-            ArtifactSource source) {
+    protected List<AddressableRug> decorate (ArtifactDescriptor artifact, List<Rug> operations,
+                               ArtifactSource source) {
 
         List<ParameterValue> additionalPvs = Collections.emptyList();
 
         ResourceSpecifier gav = new SimpleResourceSpecifier(artifact.group(), artifact.artifact(),
                 artifact.version());
 
-        List<ProjectGenerator> generators = asJavaCollectionConverter(operations.generators())
-                .asJavaCollection().stream().filter(g -> !g.name().equals("TypeDoc"))
-                .map(g -> new DecoratedProjectGenerator(g, gav, additionalPvs, source))
-                .sorted(comparing(Rug::name)).collect(Collectors.toList());
-        List<ProjectEditor> editors = asJavaCollectionConverter(operations.editors())
-                .asJavaCollection().stream()
-                .map(g -> new DecoratedProjectEditor(g, gav, additionalPvs, source))
-                .sorted(comparing(Rug::name)).collect(Collectors.toList());
-        List<ProjectReviewer> reviewers = asJavaCollectionConverter(operations.reviewers())
-                .asJavaCollection().stream()
-                .map(g -> new DecoratedProjectReviewer(g, gav, additionalPvs, source))
-                .sorted(Comparator.comparing(Rug::name)).collect(Collectors.toList());
+        List<AddressableRug> rugs = new ArrayList<>();
 
-        List<CommandHandler> commandHandlers = asJavaCollectionConverter(
-                operations.commandHandlers()).asJavaCollection().stream()
-                        .map(g -> new DecoratedCommandHandler(g, gav, source))
-                        .sorted(Comparator.comparing(Rug::name)).collect(Collectors.toList());
+        for (Rug rug : operations) {
+            if (rug instanceof ProjectGenerator) {
+                rugs.add(new DecoratedProjectGenerator((ProjectGenerator) rug, gav, additionalPvs, source));
+            }
+            if (rug instanceof ProjectEditor) {
+                rugs.add(new DecoratedProjectEditor((ProjectEditor) rug, gav, additionalPvs, source));
+            }
+            if (rug instanceof ProjectReviewer) {
+                rugs.add(new DecoratedProjectReviewer((ProjectReviewer) rug, gav, additionalPvs, source));
+            }
+            if (rug instanceof CommandHandler) {
+                rugs.add(new DecoratedCommandHandler((CommandHandler) rug, gav, source));
+            }
+            if (rug instanceof EventHandler) {
+                rugs.add(new DecoratedEventHandler((EventHandler) rug, gav, source));
+            }
+            if (rug instanceof ResponseHandler) {
+                rugs.add(new DecoratedResponseHandler((ResponseHandler) rug, gav, source));
+            }
+        }
+        return rugs;
 
-        List<EventHandler> eventHandlers = asJavaCollectionConverter(operations.eventHandlers())
-                .asJavaCollection().stream().map(g -> new DecoratedEventHandler(g, gav, source))
-                .sorted(Comparator.comparing(Rug::name)).collect(Collectors.toList());
-
-        List<ResponseHandler> responseHandlers = asJavaCollectionConverter(
-                operations.responseHandlers()).asJavaCollection().stream()
-                        .map(g -> new DecoratedResponseHandler(g, gav, source))
-                        .sorted(Comparator.comparing(Rug::name)).collect(Collectors.toList());
-
-        return new Rugs(asScalaBufferConverter(editors).asScala().toSeq(),
-                asScalaBufferConverter(generators).asScala().toSeq(),
-                asScalaBufferConverter(reviewers).asScala().toSeq(),
-                asScalaBufferConverter(commandHandlers).asScala().toSeq(),
-                asScalaBufferConverter(eventHandlers).asScala().toSeq(),
-                asScalaBufferConverter(responseHandlers).asScala().toSeq());
     }
 
     /**
      * A Rug that is addressable via mvn and github coorindates
+     *
      * @param <T>
      */
-    public static class ProvenanceDeocoratingRug<T extends Rug> implements ProvenanceInfo {
+    public static class ProvenanceDeocoratingRug<T extends Rug> implements ProvenanceInfo, Rug {
 
         private T delegate;
 
@@ -119,7 +136,7 @@ public class DecoratingRugLoader extends BaseRugLoader {
         private String sha;
 
         public ProvenanceDeocoratingRug(T delegate, ResourceSpecifier gav,
-                ArtifactSource artifactSource) {
+                                        ArtifactSource artifactSource) {
             this.delegate = delegate;
             this.gav = gav;
             init(artifactSource);
@@ -127,6 +144,7 @@ public class DecoratingRugLoader extends BaseRugLoader {
 
         /**
          * Extract git stuff
+         *
          * @param artifactSource
          */
         private void init(ArtifactSource artifactSource) {
@@ -153,6 +171,36 @@ public class DecoratingRugLoader extends BaseRugLoader {
         @Override
         public Seq<Tag> tags() {
             return delegate.tags();
+        }
+
+        @Override
+        public Option<Rug> findRug(String simpleOrFq) {
+            return delegate.findRug(simpleOrFq);
+        }
+
+        @Override
+        public Option<ParameterizedRug> findParameterizedRug(String simpleOrFq) {
+            return delegate.findParameterizedRug(simpleOrFq);
+        }
+
+        @Override
+        public Seq<Rug> allRugs() {
+            return delegate.allRugs();
+        }
+
+        @Override
+        public void addToArchiveContext(Seq<Rug> rugs) {
+            delegate.addToArchiveContext(rugs);
+        }
+
+        @Override
+        public Seq<AddressableRug> externalContext() {
+            return delegate.externalContext();
+        }
+
+        @Override
+        public Seq<Rug> archiveContext() {
+            return delegate.archiveContext();
         }
 
         @Override
@@ -184,11 +232,15 @@ public class DecoratingRugLoader extends BaseRugLoader {
         public String sha() {
             return sha;
         }
+
+        @Override
+        public Logger logger() {
+            return delegate.logger();
+        }
     }
 
     /**
      * Add some extra parameters to an already parameterized rug
-     * 
      */
     public static class ParameterizedDecoratingRug<T extends ParameterizedRug> extends
             ProvenanceDeocoratingRug<ParameterizedRug> implements ParameterizedAddressableRug {
@@ -199,7 +251,7 @@ public class DecoratingRugLoader extends BaseRugLoader {
         protected List<Parameter> additionalParameters;
 
         public ParameterizedDecoratingRug(T delegate, ResourceSpecifier gav,
-                List<ParameterValue> additionalParameterValues, ArtifactSource artifactSource) {
+                                          List<ParameterValue> additionalParameterValues, ArtifactSource artifactSource) {
             super(delegate, gav, artifactSource);
             this.delegate = delegate;
             this.additionalParameterValues = new ArrayList<>(additionalParameterValues);
@@ -275,6 +327,41 @@ public class DecoratingRugLoader extends BaseRugLoader {
                 }
             };
         }
+
+        @Override
+        public Logger logger() {
+            return delegate.logger();
+        }
+
+        @Override
+        public Option<Rug> findRug(String simpleOrFq) {
+            return delegate.findRug(simpleOrFq);
+        }
+
+        @Override
+        public Option<ParameterizedRug> findParameterizedRug(String simpleOrFq) {
+            return delegate.findParameterizedRug(simpleOrFq);
+        }
+
+        @Override
+        public Seq<Rug> allRugs() {
+            return delegate.allRugs();
+        }
+
+        @Override
+        public void addToArchiveContext(Seq<Rug> rugs) {
+            delegate.addToArchiveContext(rugs);
+        }
+
+        @Override
+        public Seq<AddressableRug> externalContext() {
+            return delegate.externalContext();
+        }
+
+        @Override
+        public Seq<Rug> archiveContext() {
+            return delegate.archiveContext();
+        }
     }
 
     /**
@@ -286,7 +373,7 @@ public class DecoratingRugLoader extends BaseRugLoader {
         private ProjectEditor delegate;
 
         public DecoratedProjectEditor(ProjectEditor delegate, ResourceSpecifier gav,
-                List<ParameterValue> additionalParameters, ArtifactSource source) {
+                                      List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
             this.delegate = delegate;
         }
@@ -295,6 +382,12 @@ public class DecoratingRugLoader extends BaseRugLoader {
         public ModificationAttempt modify(ArtifactSource as, ParameterValues poa)
                 throws MissingParametersException {
             return delegate.modify(as, decorateParameterValues(poa));
+        }
+
+
+        @Override
+        public ParameterValues modify$default$2() {
+            return delegate.modify$default$2();//editor has a default param now it seems!
         }
 
         @Override
@@ -342,7 +435,7 @@ public class DecoratingRugLoader extends BaseRugLoader {
         private ProjectGenerator delegate;
 
         public DecoratedProjectGenerator(ProjectGenerator delegate, ResourceSpecifier gav,
-                List<ParameterValue> additionalParameters, ArtifactSource source) {
+                                         List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
             this.delegate = delegate;
             init();
@@ -381,8 +474,8 @@ public class DecoratingRugLoader extends BaseRugLoader {
                     if (dir.name().equals("META-INF")) {
                         Optional<Artifact> nonMavenArtifact = asJavaCollectionConverter(
                                 dir.artifacts()).asJavaCollection().stream()
-                                        .filter(a -> !a.path().startsWith("META-INF/maven"))
-                                        .findAny();
+                                .filter(a -> !a.path().startsWith("META-INF/maven"))
+                                .findAny();
                         return nonMavenArtifact.isPresent();
                     }
                     return (!dir.path().equals("META-INF/maven"));
@@ -405,7 +498,7 @@ public class DecoratingRugLoader extends BaseRugLoader {
         private ProjectReviewer delegate;
 
         public DecoratedProjectReviewer(ProjectReviewer delegate, ResourceSpecifier gav,
-                List<ParameterValue> additionalParameters, ArtifactSource source) {
+                                        List<ParameterValue> additionalParameters, ArtifactSource source) {
             super(delegate, gav, additionalParameters, source);
             this.delegate = delegate;
         }
@@ -422,7 +515,7 @@ public class DecoratingRugLoader extends BaseRugLoader {
         private EventHandler delegate;
 
         public DecoratedEventHandler(EventHandler delegate, ResourceSpecifier gav,
-                ArtifactSource artifactSource) {
+                                     ArtifactSource artifactSource) {
             super(delegate, gav, artifactSource);
             this.delegate = delegate;
         }
@@ -447,7 +540,7 @@ public class DecoratingRugLoader extends BaseRugLoader {
         private CommandHandler delegate;
 
         public DecoratedCommandHandler(CommandHandler delegate, ResourceSpecifier gav,
-                ArtifactSource artifactSource) {
+                                       ArtifactSource artifactSource) {
             super(delegate, gav, Collections.emptyList(), artifactSource);
             this.delegate = delegate;
         }
@@ -463,7 +556,9 @@ public class DecoratingRugLoader extends BaseRugLoader {
         }
 
         @Override
-        public Seq<Secret> secrets() { return delegate.secrets(); }
+        public Seq<Secret> secrets() {
+            return delegate.secrets();
+        }
 
         @Override
         public Seq<MappedParameter> mappedParameters() {
@@ -480,14 +575,144 @@ public class DecoratingRugLoader extends BaseRugLoader {
         private ResponseHandler delegate;
 
         public DecoratedResponseHandler(ResponseHandler delegate, ResourceSpecifier gav,
-                ArtifactSource artifactSource) {
+                                        ArtifactSource artifactSource) {
             super(delegate, gav, Collections.emptyList(), artifactSource);
             this.delegate = delegate;
         }
 
         @Override
-        public Option<Handlers.Plan> handle(InstructionResponse response, ParameterValues params) {
+        public Option<Handlers.Plan> handle(Handlers.Response response, ParameterValues params) {
             return delegate.handle(response, params);
         }
+    }
+
+    public Rugs load(ArtifactDescriptor artifact) throws RugLoaderException {
+        return load(artifact, null);
+    }
+
+    public Rugs load(String group, String artifact, String version) throws RugLoaderException {
+        return load(new DefaultArtifactDescriptor(group, artifact, version,
+                ArtifactDescriptor.Extension.ZIP));
+    }
+
+    public final Rugs load(String group, String artifact, String version, ArtifactSource source)
+            throws RugLoaderException {
+        return load(new DefaultArtifactDescriptor(group, artifact, version,
+                ArtifactDescriptor.Extension.ZIP), source);
+    }
+
+    public final Rugs load(ArtifactDescriptor artifact, ArtifactSource source)
+            throws RugLoaderException {
+
+        String version = null;
+        List<ArtifactDescriptor> dependencies;
+
+        try {
+            version = resolver.resolveVersion(artifact);
+            artifact = ArtifactDescriptorFactory.copyFrom(artifact, version);
+            dependencies = resolver.resolveTransitiveDependencies(artifact);
+        } catch (DependencyResolverException e) {
+            throw new RugLoaderException(String.format(
+                    "Failed to resolveTransitiveDependencies dependencies for %s:%s:%s",
+                    artifact.group(), artifact.artifact(), version), e);
+        }
+
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(String.format("Loading operations into Rug runtime for %s:%s:%s",
+                    artifact.group(), artifact.artifact(), version));
+        }
+
+        dependencies = postProcessArfifactDescriptors(artifact, dependencies);
+
+        List<Rug> otherOperations = new ArrayList<>();
+        DefaultRugArchiveReader reader = operationsReader();
+
+        Rugs operations = null;
+
+        //first collect up all the otherOperations
+        for (ArtifactDescriptor ad : dependencies) {
+            if (!ad.match(artifact.group(), artifact.artifact(), artifact.version(),
+                    ArtifactDescriptor.Extension.ZIP)) {
+                ArtifactSource artifactSource = createArtifactSource(ad);
+                otherOperations.addAll(asJavaCollectionConverter(
+                        loadArtifact(ad, artifactSource, reader, Collections.emptyList())
+                                .allRugs()).asJavaCollection());
+            }
+        }
+
+        //now decorate them
+
+        List<AddressableRug> decorated = decorate(artifact,otherOperations,source);
+
+        //now load the current ones
+        for (ArtifactDescriptor ad : dependencies) {
+            if (ad.match(artifact.group(), artifact.artifact(), artifact.version(),
+                    ArtifactDescriptor.Extension.ZIP)) {
+                // Make sure to load the ArtifactSource if it hasn't been provided
+                if (source == null) {
+                    source = createArtifactSource(ad);
+                }
+
+                operations = loadArtifact(ad, source, reader, decorated);
+            }
+        }
+
+        if (operations == null) {
+            operations = Rugs.Empty();
+        }
+
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(String.format("Loaded operations for %s:%s:%s: %s", artifact.group(),
+                    artifact.artifact(), artifact.version(), operations.toString()));
+        }
+
+        return operations;
+    }
+
+
+    protected DependencyResolver dependencyResolver() {
+        return resolver;
+    }
+
+    protected List<ArtifactDescriptor> postProcessArfifactDescriptors(ArtifactDescriptor artifact,
+                                                                      List<ArtifactDescriptor> dependencies) {
+        return dependencies;
+    }
+
+
+    protected ArtifactSource createArtifactSource(ArtifactDescriptor artifact) {
+        try {
+            File archiveRoot = new File(artifact.uri());
+            if (archiveRoot.isFile()) {
+                return ZipFileArtifactSourceReader
+                        .fromZipSource(new ZipFileInput(new FileInputStream(archiveRoot)));
+            } else {
+                return new FileSystemArtifactSource(
+                        new SimpleFileSystemArtifactSourceIdentifier(archiveRoot));
+            }
+        } catch (FileNotFoundException e) {
+            LOGGER.warn(String.format("Failed to read Rug archive for %s:%s:%s", artifact.group(),
+                    artifact.artifact(), artifact.version()), e);
+        }
+        return null;
+    }
+
+    protected Rugs loadArtifact(ArtifactDescriptor artifact, ArtifactSource source,
+                                DefaultRugArchiveReader reader, List<AddressableRug> otherOperations) throws RugLoaderException {
+        try {
+            return reader.find(source, asScalaBufferConverter(otherOperations).asScala().toList());
+        } catch (RugRuntimeException e) {
+            LOGGER.error(String.format("Failed to load Rug archive for %s:%s:%s", artifact.group(),
+                    artifact.artifact(), artifact.version()), e);
+            throw new RugLoaderRuntimeException(String.format(
+                    "Failed to load Rug archive for %s:%s:%s:\n  %s", artifact.group(),
+                    artifact.artifact(), artifact.version(), e.getMessage()), e);
+        }
+    }
+
+    protected DefaultRugArchiveReader operationsReader() {
+        return new DefaultRugArchiveReader(DefaultAtomistConfig$.MODULE$,
+                new DefaultEvaluator(new EmptyRugDslFunctionRegistry()),
+                DefaultTypeRegistry$.MODULE$);
     }
 }
