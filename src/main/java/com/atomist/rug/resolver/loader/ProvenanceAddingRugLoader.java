@@ -17,7 +17,6 @@ import com.atomist.project.edit.ProjectEditor;
 import com.atomist.project.generate.ProjectGenerator;
 import com.atomist.project.review.ProjectReviewer;
 import com.atomist.project.review.ReviewResult;
-import com.atomist.rug.EmptyRugDslFunctionRegistry;
 import com.atomist.rug.RugRuntimeException;
 import com.atomist.rug.kind.DefaultTypeRegistry$;
 import com.atomist.rug.resolver.ArtifactDescriptor;
@@ -37,7 +36,6 @@ import com.atomist.rug.runtime.ResponseHandler;
 import com.atomist.rug.runtime.Rug;
 import com.atomist.rug.runtime.SystemEvent;
 import com.atomist.rug.runtime.js.RugContext;
-import com.atomist.rug.runtime.rugdsl.DefaultEvaluator;
 import com.atomist.rug.spi.Handlers;
 import com.atomist.rug.spi.Secret;
 import com.atomist.source.Artifact;
@@ -712,7 +710,6 @@ public class ProvenanceAddingRugLoader implements RugLoader{
 
     protected DefaultRugArchiveReader operationsReader() {
         return new DefaultRugArchiveReader(DefaultAtomistConfig$.MODULE$,
-                new DefaultEvaluator(new EmptyRugDslFunctionRegistry()),
                 DefaultTypeRegistry$.MODULE$);
     }
 }
