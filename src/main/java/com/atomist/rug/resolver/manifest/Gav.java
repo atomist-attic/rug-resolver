@@ -7,8 +7,19 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @JsonInclude(Include.NON_EMPTY)
 public class Gav {
 
-    private String group;
+    public static Gav formString(String coord) {
+        if (coord == null) {
+            throw new IllegalArgumentException("gav should not be null");
+        }
+        String[] parts = coord.split(":");
+        if (parts.length != 3) {
+            throw new IllegalArgumentException("gav should be of form group:artifact:version");
+        }
+        return new Gav(parts[0], parts[1], parts[2]);
+    }
     private String artifact;
+    private String group;
+
     private String version;
 
     public Gav() {
@@ -22,16 +33,9 @@ public class Gav {
         }
     }
 
-    public void setGroup(String group) {
-        this.group = group;
-    }
-
-    public void setArtifact(String artifact) {
-        this.artifact = artifact;
-    }
-
-    public void setVersion(String version) {
-        this.version = version;
+    @JsonProperty("artifact")
+    public String artifact() {
+        return artifact;
     }
 
     @JsonProperty("group")
@@ -39,24 +43,20 @@ public class Gav {
         return group;
     }
 
-    @JsonProperty("artifact")
-    public String artifact() {
-        return artifact;
+    public void setArtifact(String artifact) {
+        this.artifact = artifact;
+    }
+
+    public void setGroup(String group) {
+        this.group = group;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
     }
 
     @JsonProperty("version")
     public String version() {
         return version;
-    }
-
-    public static Gav formString(String coord) {
-        if (coord == null) {
-            throw new IllegalArgumentException("gav should not be null");
-        }
-        String[] parts = coord.split(":");
-        if (parts.length != 3) {
-            throw new IllegalArgumentException("gav should be of form group:artifact:version");
-        }
-        return new Gav(parts[0], parts[1], parts[2]);
     }
 }

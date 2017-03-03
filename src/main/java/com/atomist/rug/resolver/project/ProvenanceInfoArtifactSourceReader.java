@@ -1,12 +1,5 @@
 package com.atomist.rug.resolver.project;
 
-import com.atomist.rug.resolver.git.RepositoryDetails;
-import com.atomist.rug.resolver.git.RepositoryDetailsReader;
-import com.atomist.rug.resolver.manifest.Manifest;
-import com.atomist.source.ArtifactSource;
-import com.atomist.source.FileArtifact;
-import com.atomist.source.file.FileSystemArtifactSourceIdentifier;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
@@ -14,6 +7,13 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.yaml.snakeyaml.Yaml;
+
+import com.atomist.rug.resolver.git.RepositoryDetails;
+import com.atomist.rug.resolver.git.RepositoryDetailsReader;
+import com.atomist.rug.resolver.manifest.Manifest;
+import com.atomist.source.ArtifactSource;
+import com.atomist.source.FileArtifact;
+import com.atomist.source.file.FileSystemArtifactSourceIdentifier;
 
 import scala.Option;
 

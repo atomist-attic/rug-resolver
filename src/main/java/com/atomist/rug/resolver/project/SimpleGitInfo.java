@@ -2,8 +2,8 @@ package com.atomist.rug.resolver.project;
 
 public class SimpleGitInfo implements GitInfo {
 
-    private final String repo;
     private final String branch;
+    private final String repo;
     private final String sha;
 
     public SimpleGitInfo(String repo, String branch, String sha) {
@@ -13,13 +13,13 @@ public class SimpleGitInfo implements GitInfo {
     }
 
     @Override
-    public String repo() {
-        return repo;
+    public String branch() {
+        return branch;
     }
 
     @Override
-    public String branch() {
-        return branch;
+    public String repo() {
+        return repo;
     }
 
     @Override

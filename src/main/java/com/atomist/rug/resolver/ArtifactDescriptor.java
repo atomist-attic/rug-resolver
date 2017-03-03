@@ -5,29 +5,29 @@ import java.util.List;
 
 public interface ArtifactDescriptor {
 
-    String group();
-
     String artifact();
-
-    String version();
-
-    Extension extension();
-
-    Scope scope();
 
     String classifier();
 
-    URI uri();
+    List<ArtifactDescriptor> dependencies();
+
+    Extension extension();
+
+    String group();
 
     boolean match(String group, String artifact, String version, Extension extension);
 
-    List<ArtifactDescriptor> dependencies();
+    Scope scope();
+
+    URI uri();
+
+    String version();
 
     public enum Extension {
-        JAR, ZIP, JSON
+        JAR, JSON, ZIP
     }
 
     public enum Scope {
-        RUNTIME, COMPILE, TEST, PROVIDED, SYSTEM
+        COMPILE, PROVIDED, RUNTIME, SYSTEM, TEST
     }
 }

@@ -26,10 +26,6 @@ public class MdcThreadPoolExecutor extends ThreadPoolExecutor {
 
     }
 
-    private Map<String, String> getContextForTask() {
-        return MDC.getCopyOfContextMap();
-    }
-
     @Override
     public void execute(Runnable command) {
         super.execute(wrap(command, getContextForTask()));
@@ -56,5 +52,9 @@ public class MdcThreadPoolExecutor extends ThreadPoolExecutor {
                 }
             }
         };
+    }
+
+    private Map<String, String> getContextForTask() {
+        return MDC.getCopyOfContextMap();
     }
 }

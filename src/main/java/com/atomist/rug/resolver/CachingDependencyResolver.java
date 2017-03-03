@@ -1,7 +1,5 @@
 package com.atomist.rug.resolver;
 
-import com.atomist.rug.resolver.manifest.Manifest;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -15,6 +13,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.io.FileUtils;
+
+import com.atomist.rug.resolver.manifest.Manifest;
 
 /**
  * {@link DependencyResolver} that adds caching semantics on top of a wrapped
@@ -35,10 +35,10 @@ public class CachingDependencyResolver implements DependencyResolver {
     // Name of the resolver plan
     private static final String LOCAL_PLAN_FILE_NAME = "_local_resolver.plan";
     private static final String PLAN_FILE_NAME = "_resolver.plan";
-    private static final String VERSION_FILE_NAME = "_resolver.version";
-
     // Default timeout 2 hours
     private static final long TIMEOUT = 1000 * 60 * 60 * 2;
+
+    private static final String VERSION_FILE_NAME = "_resolver.version";
 
     private DependencyResolver delegate;
     private String repoHome;
@@ -98,15 +98,6 @@ public class CachingDependencyResolver implements DependencyResolver {
             return version;
         }
         return delegate.resolveVersion(artifact);
-    }
-
-    protected boolean isOutdated(ArtifactDescriptor artifact, File file) {
-        if (artifact instanceof LocalArtifactDescriptor) {
-            File manifest = new File(new File(artifact.uri()),
-                    Manifest.ATOMIST_ROOT + File.separator + Manifest.FILE_NAME);
-            return manifest.lastModified() > file.lastModified();
-        }
-        return System.currentTimeMillis() - file.lastModified() > TIMEOUT;
     }
 
     private File createPlanFile(ArtifactDescriptor artifact) {
@@ -217,6 +208,15 @@ public class CachingDependencyResolver implements DependencyResolver {
             // Something went wrong, just delete the plan file
             artifactRoot.delete();
         }
+    }
+
+    protected boolean isOutdated(ArtifactDescriptor artifact, File file) {
+        if (artifact instanceof LocalArtifactDescriptor) {
+            File manifest = new File(new File(artifact.uri()),
+                    Manifest.ATOMIST_ROOT + File.separator + Manifest.FILE_NAME);
+            return manifest.lastModified() > file.lastModified();
+        }
+        return System.currentTimeMillis() - file.lastModified() > TIMEOUT;
     }
 
 }

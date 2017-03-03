@@ -21,12 +21,12 @@ import io.takari.filemanager.Lock;
 public class LockingSyncContext implements SyncContext {
     private static final char SEPARATOR = '~';
 
-    private Logger logger = LoggerFactory.getLogger(LockingFileProcessor.class);
-
     private final FileManager fileLockManager;
+
     private final LocalRepositoryManager localRepoMan;
-    private final boolean shared;
     private final Map<String, Lock> locks = new LinkedHashMap<String, Lock>();
+    private Logger logger = LoggerFactory.getLogger(LockingFileProcessor.class);
+    private final boolean shared;
 
     public LockingSyncContext(boolean shared, RepositorySystemSession session,
             FileManager fileLockManager, Logger logger) {
@@ -63,8 +63,16 @@ public class LockingSyncContext implements SyncContext {
         }
     }
 
-    private File getLockBasedir() {
-        return new File(localRepoMan.getRepository().getBasedir(), ".locks");
+    public void close() {
+        for (Lock lock : locks.values()) {
+            try {
+                lock.unlock();
+            }
+            catch (IOException e) {
+                logger.warn("Failed to unlock file " + lock.getFile() + ": " + e);
+            }
+        }
+        locks.clear();
     }
 
     private void addArtifactPaths(Collection<String> paths,
@@ -77,16 +85,6 @@ public class LockingSyncContext implements SyncContext {
         }
     }
 
-    private String getPath(Artifact artifact) {
-        // NOTE: Don't use LRM.getPath*() as those paths could be different across processes,
-        // e.g. due to staging LRMs.
-        StringBuilder path = new StringBuilder(128);
-        path.append(artifact.getGroupId()).append(SEPARATOR);
-        path.append(artifact.getArtifactId()).append(SEPARATOR);
-        path.append(artifact.getBaseVersion());
-        return path.toString();
-    }
-
     private void addMetadataPaths(Collection<String> paths,
             Collection<? extends Metadata> metadatas) {
         if (metadatas != null) {
@@ -95,6 +93,20 @@ public class LockingSyncContext implements SyncContext {
                 paths.add(path);
             }
         }
+    }
+
+    private File getLockBasedir() {
+        return new File(localRepoMan.getRepository().getBasedir(), ".locks");
+    }
+
+    private String getPath(Artifact artifact) {
+        // NOTE: Don't use LRM.getPath*() as those paths could be different across processes,
+        // e.g. due to staging LRMs.
+        StringBuilder path = new StringBuilder(128);
+        path.append(artifact.getGroupId()).append(SEPARATOR);
+        path.append(artifact.getArtifactId()).append(SEPARATOR);
+        path.append(artifact.getBaseVersion());
+        return path.toString();
     }
 
     private String getPath(Metadata metadata) {
@@ -111,17 +123,5 @@ public class LockingSyncContext implements SyncContext {
             }
         }
         return path.toString();
-    }
-
-    public void close() {
-        for (Lock lock : locks.values()) {
-            try {
-                lock.unlock();
-            }
-            catch (IOException e) {
-                logger.warn("Failed to unlock file " + lock.getFile() + ": " + e);
-            }
-        }
-        locks.clear();
     }
 }

@@ -1,7 +1,5 @@
 package com.atomist.rug.resolver.maven;
 
-import com.atomist.rug.resolver.concurrent.MdcThreadPoolExecutor;
-
 import java.util.concurrent.ExecutorService;
 
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
@@ -19,12 +17,20 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.atomist.rug.resolver.concurrent.MdcThreadPoolExecutor;
+
 import io.takari.filemanager.FileManager;
 import io.takari.filemanager.internal.DefaultFileManager;
 
 @Configuration
 @EnableConfigurationProperties(MavenProperties.class)
 public class MavenConfiguration {
+
+    @Bean
+    @Qualifier("maven-resolver-pool")
+    public ExecutorService mavenExecutorService() {
+        return MdcThreadPoolExecutor.newFixedThreadPool(10, "maven-resolver-pool");
+    }
 
     @Bean
     public RepositorySystem repositorySystem() {
@@ -39,12 +45,6 @@ public class MavenConfiguration {
         locator.setService(FileProcessor.class, LockingFileProcessor.class);
 
         return locator.getService(RepositorySystem.class);
-    }
-
-    @Bean
-    @Qualifier("maven-resolver-pool")
-    public ExecutorService mavenExecutorService() {
-        return MdcThreadPoolExecutor.newFixedThreadPool(10, "maven-resolver-pool");
     }
 
 }

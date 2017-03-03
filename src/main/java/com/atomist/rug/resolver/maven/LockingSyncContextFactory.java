@@ -15,9 +15,9 @@ import io.takari.filemanager.FileManager;
  */
 public class LockingSyncContextFactory implements SyncContextFactory, Service {
 
-    private Logger logger = LoggerFactory.getLogger(LockingFileProcessor.class);
-
     private FileManager fileLockManager;
+
+    private Logger logger = LoggerFactory.getLogger(LockingFileProcessor.class);
 
     public LockingSyncContextFactory() {
     }

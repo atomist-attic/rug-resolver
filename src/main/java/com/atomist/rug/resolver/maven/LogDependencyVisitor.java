@@ -14,19 +14,24 @@ import org.eclipse.aether.util.graph.transformer.ConflictResolver;
 
 public class LogDependencyVisitor implements DependencyVisitor {
 
-    private Log out;
-    private DependencyVisitor visitor;
-
-    protected String treeNode = "├── ";
-    protected String lastTreeNode = "└── ";
-    protected String treeConnector = "| ";
-    protected String treeNodeWithChildren = "├─┬ ";
-    protected String lastTreeNodeWithChildre = "└─┬ ";
-
     private List<ChildInfo> childInfos = new ArrayList<ChildInfo>();
+    private Log out;
+
+    private DependencyVisitor visitor;
+    protected String lastTreeNode = "└── ";
+    protected String lastTreeNodeWithChildre = "└─┬ ";
+    protected String treeConnector = "| ";
+    protected String treeNode = "├── ";
+
+    protected String treeNodeWithChildren = "├─┬ ";
 
     public LogDependencyVisitor(Log out) {
         this.out = out;
+    }
+
+    public LogDependencyVisitor(Log out, DependencyVisitor visitor) {
+        this.out = out;
+        this.visitor = visitor;
     }
 
     public LogDependencyVisitor(Log out, String treeNode, String lastTreeNode, String treeConnector,
@@ -39,15 +44,20 @@ public class LogDependencyVisitor implements DependencyVisitor {
         this.lastTreeNodeWithChildre = lastTreeNodeWithChildren;
     }
 
-    public LogDependencyVisitor(Log out, DependencyVisitor visitor) {
-        this.out = out;
-        this.visitor = visitor;
-    }
-
     public boolean visitEnter(DependencyNode node) {
         out.info(formatIndentation(node) + formatNode(node));
         childInfos.add(new ChildInfo(node.getChildren().size()));
         return (visitor != null ? visitor.visitEnter(node) : true);
+    }
+
+    public boolean visitLeave(DependencyNode node) {
+        if (!childInfos.isEmpty()) {
+            childInfos.remove(childInfos.size() - 1);
+        }
+        if (!childInfos.isEmpty()) {
+            childInfos.get(childInfos.size() - 1).index++;
+        }
+        return (visitor != null ? visitor.visitLeave(node) : true);
     }
 
     private String formatIndentation(DependencyNode node) {
@@ -98,14 +108,10 @@ public class LogDependencyVisitor implements DependencyVisitor {
         return buffer.toString();
     }
 
-    public boolean visitLeave(DependencyNode node) {
-        if (!childInfos.isEmpty()) {
-            childInfos.remove(childInfos.size() - 1);
-        }
-        if (!childInfos.isEmpty()) {
-            childInfos.get(childInfos.size() - 1).index++;
-        }
-        return (visitor != null ? visitor.visitLeave(node) : true);
+    public interface Log {
+
+        void info(String message);
+
     }
 
     private class ChildInfo {
@@ -132,11 +138,5 @@ public class LogDependencyVisitor implements DependencyVisitor {
             return last ? (LogDependencyVisitor.this.treeConnector.length() == 2 ? "  " : "   ")
                     : LogDependencyVisitor.this.treeConnector;
         }
-    }
-
-    public interface Log {
-
-        void info(String message);
-
     }
 }

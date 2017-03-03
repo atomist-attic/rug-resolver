@@ -6,23 +6,18 @@ import java.util.List;
 
 public class DefaultArtifactDescriptor implements ArtifactDescriptor {
 
-    private final String group;
     private final String artifact;
-    private final String version;
-    private final URI uri;
-    private final Extension extension;
-    private final Scope scope;
     private final String classifier;
     private List<ArtifactDescriptor> dependencies = new ArrayList<>();
+    private final Extension extension;
+    private final String group;
+    private final Scope scope;
+    private final URI uri;
+    private final String version;
 
     public DefaultArtifactDescriptor(String group, String artifact, String version,
             Extension extension) {
         this(group, artifact, version, extension, Scope.COMPILE, null, null);
-    }
-
-    public DefaultArtifactDescriptor(String group, String artifact, String version,
-            Extension extension, Scope scope, URI uri) {
-        this(group, artifact, version, extension, scope, null, uri);
     }
 
     public DefaultArtifactDescriptor(String group, String artifact, String version,
@@ -36,9 +31,13 @@ public class DefaultArtifactDescriptor implements ArtifactDescriptor {
         this.classifier = classifier;
     }
 
-    @Override
-    public String group() {
-        return group;
+    public DefaultArtifactDescriptor(String group, String artifact, String version,
+            Extension extension, Scope scope, URI uri) {
+        this(group, artifact, version, extension, scope, null, uri);
+    }
+
+    public void addDependency(ArtifactDescriptor dependency) {
+        dependencies.add(dependency);
     }
 
     @Override
@@ -47,13 +46,28 @@ public class DefaultArtifactDescriptor implements ArtifactDescriptor {
     }
 
     @Override
-    public String version() {
-        return version;
+    public String classifier() {
+        return classifier;
+    }
+
+    public List<ArtifactDescriptor> dependencies() {
+        return dependencies;
     }
 
     @Override
     public Extension extension() {
         return extension;
+    }
+
+    @Override
+    public String group() {
+        return group;
+    }
+
+    @Override
+    public boolean match(String group, String artifact, String version, Extension extension) {
+        return this.group.equals(group) && this.artifact.equals(artifact)
+                && this.version.equals(version) && this.extension.equals(extension);
     }
 
     @Override
@@ -67,22 +81,8 @@ public class DefaultArtifactDescriptor implements ArtifactDescriptor {
     }
 
     @Override
-    public String classifier() {
-        return classifier;
-    }
-
-    @Override
-    public boolean match(String group, String artifact, String version, Extension extension) {
-        return this.group.equals(group) && this.artifact.equals(artifact)
-                && this.version.equals(version) && this.extension.equals(extension);
-    }
-
-    public List<ArtifactDescriptor> dependencies() {
-        return dependencies;
-    }
-
-    public void addDependency(ArtifactDescriptor dependency) {
-        dependencies.add(dependency);
+    public String version() {
+        return version;
     }
 
 }

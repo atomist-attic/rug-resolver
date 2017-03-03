@@ -11,12 +11,17 @@ class LogTransferListener extends AbstractTransferListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(LogTransferListener.class);
 
     @Override
-    public void transferSucceeded(TransferEvent event) {
-        LOGGER.info(messageFrom(event));
+    public void transferCorrupted(TransferEvent event) throws TransferCancelledException {
+        LOGGER.warn(messageFrom(event));
     }
 
     @Override
-    public void transferStarted(TransferEvent event) throws TransferCancelledException {
+    public void transferFailed(TransferEvent event) {
+        LOGGER.warn(messageFrom(event));
+    }
+
+    @Override
+    public void transferInitiated(TransferEvent event) throws TransferCancelledException {
         LOGGER.debug(messageFrom(event));
     }
 
@@ -26,18 +31,13 @@ class LogTransferListener extends AbstractTransferListener {
     }
 
     @Override
-    public void transferInitiated(TransferEvent event) throws TransferCancelledException {
+    public void transferStarted(TransferEvent event) throws TransferCancelledException {
         LOGGER.debug(messageFrom(event));
     }
 
     @Override
-    public void transferFailed(TransferEvent event) {
-        LOGGER.warn(messageFrom(event));
-    }
-
-    @Override
-    public void transferCorrupted(TransferEvent event) throws TransferCancelledException {
-        LOGGER.warn(messageFrom(event));
+    public void transferSucceeded(TransferEvent event) {
+        LOGGER.info(messageFrom(event));
     }
 
     private String messageFrom(TransferEvent event) {

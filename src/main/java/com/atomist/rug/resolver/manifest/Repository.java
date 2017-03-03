@@ -24,13 +24,13 @@ public class Repository {
         this.id = id;
     }
 
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
     @JsonProperty("url")
     public String url() {
         return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
     }
 
 }

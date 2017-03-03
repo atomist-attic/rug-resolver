@@ -15,37 +15,37 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "maven")
 public class MavenProperties {
 
-    private Map<String, Repo> repos = new HashMap<>();
-    private List<Repo> pomRepos = new ArrayList<>();
+    private boolean cacheMetadata = true;
     private List<String> exclusions = new ArrayList<>();
     private boolean offline = false;
-    private boolean cacheMetadata = true;
-
+    private List<Repo> pomRepos = new ArrayList<>();
     private String repoLocation = System.getProperty("java.io.tmpdir") + "/.m2/repository/"
             + UUID.randomUUID().toString();
 
+    private Map<String, Repo> repos = new HashMap<>();
+
     public List<String> getExclusions() {
         return exclusions;
-    }
-
-    public void setExclusions(List<String> exclusions) {
-        this.exclusions = exclusions;
-    }
-
-    public Map<String, Repo> getRepos() {
-        return repos;
     }
 
     public List<Repo> getPomRepos() {
         return pomRepos;
     }
 
-    public void setRepos(Map<String, Repo> repos) {
-        this.repos = repos;
+    public String getRepoLocation() {
+        return repoLocation;
     }
 
-    public void setPomRepos(List<Repo> pomRepos) {
-        this.pomRepos = pomRepos;
+    public Map<String, Repo> getRepos() {
+        return repos;
+    }
+
+    public boolean isCacheMetadata() {
+        return cacheMetadata;
+    }
+
+    public boolean isOffline() {
+        return offline;
     }
 
     public List<RemoteRepository> repositories() {
@@ -53,68 +53,37 @@ public class MavenProperties {
                 .collect(Collectors.toList());
     }
 
-    public void setRepoLocation(String repoLocation) {
-        this.repoLocation = repoLocation;
+    public void setCacheMetadata(boolean cacheMetadata) {
+        this.cacheMetadata = cacheMetadata;
+    }
+
+    public void setExclusions(List<String> exclusions) {
+        this.exclusions = exclusions;
     }
 
     public void setOffline(boolean offline) {
         this.offline = offline;
     }
 
-    public void setCacheMetadata(boolean cacheMetadata) {
-        this.cacheMetadata = cacheMetadata;
+    public void setPomRepos(List<Repo> pomRepos) {
+        this.pomRepos = pomRepos;
     }
 
-    public String getRepoLocation() {
-        return repoLocation;
+    public void setRepoLocation(String repoLocation) {
+        this.repoLocation = repoLocation;
     }
 
-    public boolean isOffline() {
-        return offline;
-    }
-
-    public boolean isCacheMetadata() {
-        return cacheMetadata;
-    }
-
-    public static class Repo {
-
-        private String url;
-        private Auth auth = new Auth();
-
-        public String getUrl() {
-            return url;
-        }
-
-        public void setUrl(String url) {
-            this.url = url;
-        }
-
-        public void setAuth(Auth auth) {
-            this.auth = auth;
-        }
-
-        public Auth getAuth() {
-            return auth;
-        }
-
-        public RemoteRepository toRepository(String id) {
-            return new RemoteRepository.Builder(id, "default", url)
-                    .setAuthentication(auth.authentication()).build();
-        }
+    public void setRepos(Map<String, Repo> repos) {
+        this.repos = repos;
     }
 
     public static class Auth {
 
-        private String username;
         private String password;
+        private String username;
 
-        public void setPassword(String password) {
-            this.password = password;
-        }
-
-        public void setUsername(String username) {
-            this.username = username;
+        public Authentication authentication() {
+            return new AuthenticationBuilder().addUsername(username).addPassword(password).build();
         }
 
         public String getPassword() {
@@ -125,8 +94,39 @@ public class MavenProperties {
             return username;
         }
 
-        public Authentication authentication() {
-            return new AuthenticationBuilder().addUsername(username).addPassword(password).build();
+        public void setPassword(String password) {
+            this.password = password;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+    }
+
+    public static class Repo {
+
+        private Auth auth = new Auth();
+        private String url;
+
+        public Auth getAuth() {
+            return auth;
+        }
+
+        public String getUrl() {
+            return url;
+        }
+
+        public void setAuth(Auth auth) {
+            this.auth = auth;
+        }
+
+        public void setUrl(String url) {
+            this.url = url;
+        }
+
+        public RemoteRepository toRepository(String id) {
+            return new RemoteRepository.Builder(id, "default", url)
+                    .setAuthentication(auth.authentication()).build();
         }
     }
 }

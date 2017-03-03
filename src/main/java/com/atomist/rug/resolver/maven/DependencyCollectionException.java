@@ -1,7 +1,5 @@
 package com.atomist.rug.resolver.maven;
 
-import com.atomist.rug.resolver.DependencyResolverException;
-
 import java.util.Collections;
 import java.util.List;
 
@@ -13,6 +11,8 @@ import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.resolution.ArtifactResolutionException;
 import org.eclipse.aether.resolution.ArtifactResult;
 
+import com.atomist.rug.resolver.DependencyResolverException;
+
 public class DependencyCollectionException extends DependencyResolverException {
 
     private static final String LAST_TREE_NODE = (SystemUtils.IS_OS_WINDOWS ? "\\- " : "└── ");
@@ -22,9 +22,15 @@ public class DependencyCollectionException extends DependencyResolverException {
 
     private static final long serialVersionUID = -5843449884566599662L;
 
-    private List<RemoteRepository> remoteRepositories = Collections.emptyList();
     private String detailMessage = null;
+    private List<RemoteRepository> remoteRepositories = Collections.emptyList();
     private ErrorType type = null;
+
+    public DependencyCollectionException(ArtifactResolutionException e) {
+        super(e.getMessage());
+        this.remoteRepositories = e.getResult().getRequest().getRepositories();
+        getSource(e.getMessage(), e.getResult());
+    }
 
     public DependencyCollectionException(
             org.eclipse.aether.collection.DependencyCollectionException e) {
@@ -33,16 +39,22 @@ public class DependencyCollectionException extends DependencyResolverException {
         getSource(e.getMessage(), e.getResult());
     }
 
-    public DependencyCollectionException(ArtifactResolutionException e) {
-        super(e.getMessage());
-        this.remoteRepositories = e.getResult().getRequest().getRepositories();
-        getSource(e.getMessage(), e.getResult());
-    }
-
     public DependencyCollectionException(String message,
             List<RemoteRepository> remoteRepositories) {
         super(message);
         this.remoteRepositories = remoteRepositories;
+    }
+
+    public String getDetailMessage() {
+        return detailMessage;
+    }
+
+    public List<RemoteRepository> getRemoteRepositories() {
+        return remoteRepositories;
+    }
+
+    public ErrorType getType() {
+        return type;
     }
 
     private void getSource(String message, ArtifactResult result) {
@@ -100,18 +112,6 @@ public class DependencyCollectionException extends DependencyResolverException {
                         artifact.getVersion());
             }
         }
-    }
-
-    public ErrorType getType() {
-        return type;
-    }
-
-    public String getDetailMessage() {
-        return detailMessage;
-    }
-
-    public List<RemoteRepository> getRemoteRepositories() {
-        return remoteRepositories;
     }
 
     public enum ErrorType {

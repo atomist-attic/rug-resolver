@@ -1,5 +1,12 @@
 package com.atomist.rug.resolver.metadata;
 
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+
 import com.atomist.param.Parameter;
 import com.atomist.param.Tag;
 import com.atomist.project.archive.Rugs;
@@ -21,13 +28,6 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
-
 import scala.collection.JavaConverters;
 
 /**
@@ -35,8 +35,9 @@ import scala.collection.JavaConverters;
  */
 public abstract class MetadataWriter {
 
-    public static enum Format {
-        JSON, YAML
+    public static FileArtifact create(Rugs operationsAndHandlers, ArtifactDescriptor artifact,
+            ArtifactSource source, GitInfo info) {
+        return create(operationsAndHandlers, artifact, source, info, Format.JSON);
     }
 
     public static FileArtifact create(Rugs operationsAndHandlers, ArtifactDescriptor artifact,
@@ -50,11 +51,6 @@ public abstract class MetadataWriter {
             // TODO throw exception
         }
         return null;
-    }
-
-    public static FileArtifact create(Rugs operationsAndHandlers, ArtifactDescriptor artifact,
-            ArtifactSource source, GitInfo info) {
-        return create(operationsAndHandlers, artifact, source, info, Format.JSON);
     }
 
     private static ObjectMapper objectMapper(Format format) {
@@ -78,38 +74,62 @@ public abstract class MetadataWriter {
         return mapper;
     }
 
-    private static class ArchiveMetadata {
+    public static enum Format {
+        JSON, YAML
+    }
 
-        @JsonProperty
-        private String group;
+    @SuppressWarnings("serial")
+    public static class MetadataModule extends SimpleModule {
+
+        public MetadataModule() {
+            addSerializer(Tag.class, new TagSerializer());
+        }
+    }
+
+    public static class TagSerializer extends JsonSerializer<Tag> {
+
+        @Override
+        public void serialize(Tag value, JsonGenerator gen, SerializerProvider serializers)
+                throws IOException, JsonProcessingException {
+            gen.writeStartObject();
+            gen.writeStringField("name", value.name());
+            gen.writeStringField("decription", value.description());
+            gen.writeEndObject();
+        }
+    }
+
+    private static class ArchiveMetadata {
 
         @JsonProperty
         private String artifact;
 
-        @JsonProperty
-        private String version;
-
-        // git branch/hash etc taken from provenance-info
-        @JsonProperty
-        private Origin origin;
+        @JsonProperty("command-handlers")
+        private List<CommandHandler> commandHandlers;
 
         @JsonProperty
         private List<ProjectOperation> editors;
+
+        @JsonProperty("event-handlers")
+        private List<EventHandler> eventHandlers;
 
         @JsonProperty
         private List<ProjectOperation> generators;
 
         @JsonProperty
-        private List<ProjectOperation> reviewers;
+        private String group;
 
-        @JsonProperty("event-handlers")
-        private List<EventHandler> eventHandlers;
-
-        @JsonProperty("command-handlers")
-        private List<CommandHandler> commandHandlers;
+        // git branch/hash etc taken from provenance-info
+        @JsonProperty
+        private Origin origin;
 
         @JsonProperty("response-handlers")
         private List<ResponseHandler> responseHandlers;
+
+        @JsonProperty
+        private List<ProjectOperation> reviewers;
+
+        @JsonProperty
+        private String version;
 
         public ArchiveMetadata(Rugs rugs, ArtifactDescriptor artifact, GitInfo info) {
 
@@ -144,13 +164,80 @@ public abstract class MetadataWriter {
         }
     }
 
-    private static class ProjectOperation {
+    private static class CommandHandler {
+
+        @JsonProperty
+        private String description;
+
+        @JsonProperty
+        private Collection<String> intent;
 
         @JsonProperty
         private String name;
 
         @JsonProperty
+        private Collection<Parameter> parameters;
+
+        @JsonProperty
+        private Collection<Tag> tags;
+
+        public CommandHandler(com.atomist.rug.runtime.CommandHandler handler) {
+            name = handler.name();
+            description = handler.description();
+            intent = JavaConverters.asJavaCollectionConverter(handler.intent()).asJavaCollection();
+            tags = JavaConverters.asJavaCollectionConverter(handler.tags()).asJavaCollection();
+            parameters = JavaConverters.asJavaCollectionConverter(handler.parameters())
+                    .asJavaCollection();
+        }
+    }
+
+    private static class EventHandler {
+
+        @JsonProperty
         private String description;
+
+        @JsonProperty
+        private String name;
+
+        @JsonProperty
+        private String rootNode;
+
+        @JsonProperty
+        private Collection<Tag> tags;
+
+        public EventHandler(com.atomist.rug.runtime.EventHandler handler) {
+            name = handler.name();
+            description = handler.description();
+            rootNode = handler.rootNodeName();
+            tags = JavaConverters.asJavaCollectionConverter(handler.tags()).asJavaCollection();
+        }
+    }
+
+    private static class Origin {
+
+        @JsonProperty
+        private String branch;
+
+        @JsonProperty
+        private String repo;
+
+        @JsonProperty
+        private String sha;
+
+        public Origin(String repo, String branch, String sha) {
+            this.repo = repo;
+            this.branch = branch;
+            this.sha = sha;
+        }
+    }
+
+    private static class ProjectOperation {
+
+        @JsonProperty
+        private String description;
+
+        @JsonProperty
+        private String name;
 
         @JsonProperty
         private Collection<Parameter> parameters;
@@ -175,68 +262,19 @@ public abstract class MetadataWriter {
         }
     }
 
-    private static class EventHandler {
-
-        @JsonProperty
-        private String name;
-
-        @JsonProperty
-        private String description;
-
-        @JsonProperty
-        private Collection<Tag> tags;
-
-        @JsonProperty
-        private String rootNode;
-
-        public EventHandler(com.atomist.rug.runtime.EventHandler handler) {
-            name = handler.name();
-            description = handler.description();
-            rootNode = handler.rootNodeName();
-            tags = JavaConverters.asJavaCollectionConverter(handler.tags()).asJavaCollection();
-        }
-    }
-
-    private static class CommandHandler {
-
-        @JsonProperty
-        private String name;
-
-        @JsonProperty
-        private String description;
-
-        @JsonProperty
-        private Collection<Tag> tags;
-
-        @JsonProperty
-        private Collection<String> intent;
-
-        @JsonProperty
-        private Collection<Parameter> parameters;
-
-        public CommandHandler(com.atomist.rug.runtime.CommandHandler handler) {
-            name = handler.name();
-            description = handler.description();
-            intent = JavaConverters.asJavaCollectionConverter(handler.intent()).asJavaCollection();
-            tags = JavaConverters.asJavaCollectionConverter(handler.tags()).asJavaCollection();
-            parameters = JavaConverters.asJavaCollectionConverter(handler.parameters())
-                    .asJavaCollection();
-        }
-    }
-
     private static class ResponseHandler {
 
         @JsonProperty
-        private String name;
-
-        @JsonProperty
         private String description;
 
         @JsonProperty
-        private Collection<Tag> tags;
+        private String name;
 
         @JsonProperty
         private Collection<Parameter> parameters;
+
+        @JsonProperty
+        private Collection<Tag> tags;
 
         public ResponseHandler(com.atomist.rug.runtime.ResponseHandler handler) {
             name = handler.name();
@@ -244,44 +282,6 @@ public abstract class MetadataWriter {
             parameters = JavaConverters.asJavaCollectionConverter(handler.parameters())
                     .asJavaCollection();
             tags = JavaConverters.asJavaCollectionConverter(handler.tags()).asJavaCollection();
-        }
-    }
-
-    private static class Origin {
-
-        @JsonProperty
-        private String repo;
-
-        @JsonProperty
-        private String branch;
-
-        @JsonProperty
-        private String sha;
-
-        public Origin(String repo, String branch, String sha) {
-            this.repo = repo;
-            this.branch = branch;
-            this.sha = sha;
-        }
-    }
-
-    public static class TagSerializer extends JsonSerializer<Tag> {
-
-        @Override
-        public void serialize(Tag value, JsonGenerator gen, SerializerProvider serializers)
-                throws IOException, JsonProcessingException {
-            gen.writeStartObject();
-            gen.writeStringField("name", value.name());
-            gen.writeStringField("decription", value.description());
-            gen.writeEndObject();
-        }
-    }
-
-    @SuppressWarnings("serial")
-    public static class MetadataModule extends SimpleModule {
-
-        public MetadataModule() {
-            addSerializer(Tag.class, new TagSerializer());
         }
     }
 }

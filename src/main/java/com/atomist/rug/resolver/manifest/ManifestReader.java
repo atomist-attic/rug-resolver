@@ -1,10 +1,5 @@
 package com.atomist.rug.resolver.manifest;
 
-import com.atomist.rug.resolver.project.GitInfo;
-import com.atomist.rug.resolver.project.ProvenanceInfoArtifactSourceReader;
-import com.atomist.source.ArtifactSource;
-import com.atomist.source.FileArtifact;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +7,11 @@ import java.util.Optional;
 
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.parser.ParserException;
+
+import com.atomist.rug.resolver.project.GitInfo;
+import com.atomist.rug.resolver.project.ProvenanceInfoArtifactSourceReader;
+import com.atomist.source.ArtifactSource;
+import com.atomist.source.FileArtifact;
 
 import scala.Option;
 

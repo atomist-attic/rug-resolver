@@ -5,23 +5,6 @@ import com.atomist.rug.resolver.ArtifactDescriptor.Scope;
 
 public class ArtifactDescriptorFactory {
 
-    public static ArtifactDescriptor create(String artifact, String version) {
-        if (version == null) {
-            version = "latest";
-        }
-        String[] segments = artifact.split(":");
-        if (segments.length == 2) {
-            return new DefaultArtifactDescriptor(segments[0], segments[1], version, Extension.JAR);
-        }
-        else if (segments.length == 3) {
-            return new DefaultArtifactDescriptor(segments[0], segments[1], version,
-                    toExtension(segments[2]));
-        }
-        throw new IllegalArgumentException(String.format(
-                "Specified artifact %s should be of format <group>:<artifact>(:<extension>)",
-                artifact));
-    }
-
     public static ArtifactDescriptor copyFrom(ArtifactDescriptor artifact, String version) {
         DefaultArtifactDescriptor newArtifact;
         if (artifact instanceof LocalArtifactDescriptor) {
@@ -80,14 +63,21 @@ public class ArtifactDescriptorFactory {
         return newArtifact;
     }
 
-    private static ArtifactDescriptor copyFromParent(ArtifactDescriptor parent,
-            ArtifactDescriptor child, String group, String artifact, String version) {
-        if (parent.group().equals(child.group()) && parent.artifact().equals(child.artifact())
-                && parent.version().equals(child.version())) {
-            return new DefaultArtifactDescriptor(group, artifact, version, child.extension(),
-                    child.scope(), child.classifier(), child.uri());
+    public static ArtifactDescriptor create(String artifact, String version) {
+        if (version == null) {
+            version = "latest";
         }
-        return child;
+        String[] segments = artifact.split(":");
+        if (segments.length == 2) {
+            return new DefaultArtifactDescriptor(segments[0], segments[1], version, Extension.JAR);
+        }
+        else if (segments.length == 3) {
+            return new DefaultArtifactDescriptor(segments[0], segments[1], version,
+                    toExtension(segments[2]));
+        }
+        throw new IllegalArgumentException(String.format(
+                "Specified artifact %s should be of format <group>:<artifact>(:<extension>)",
+                artifact));
     }
 
     public static Extension toExtension(String extension) {
@@ -96,5 +86,15 @@ public class ArtifactDescriptorFactory {
 
     public static Scope toScope(String scope) {
         return Scope.valueOf(scope.toUpperCase());
+    }
+
+    private static ArtifactDescriptor copyFromParent(ArtifactDescriptor parent,
+            ArtifactDescriptor child, String group, String artifact, String version) {
+        if (parent.group().equals(child.group()) && parent.artifact().equals(child.artifact())
+                && parent.version().equals(child.version())) {
+            return new DefaultArtifactDescriptor(group, artifact, version, child.extension(),
+                    child.scope(), child.classifier(), child.uri());
+        }
+        return child;
     }
 }

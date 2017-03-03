@@ -1,23 +1,5 @@
 package com.atomist.rug.resolver.deployer;
 
-import com.atomist.project.archive.Rugs;
-import com.atomist.rug.resolver.ArtifactDescriptor;
-import com.atomist.rug.resolver.manifest.Manifest;
-import com.atomist.rug.resolver.manifest.ManifestFactory;
-import com.atomist.rug.resolver.manifest.ManifestPomWriter;
-import com.atomist.rug.resolver.manifest.ManifestWriter;
-import com.atomist.rug.resolver.maven.MavenConfiguration;
-import com.atomist.rug.resolver.metadata.MetadataWriter;
-import com.atomist.rug.resolver.project.GitInfo;
-import com.atomist.rug.resolver.project.ProvenanceInfoArtifactSourceWriter;
-import com.atomist.source.ArtifactSource;
-import com.atomist.source.FileArtifact;
-import com.atomist.source.FileEditor;
-import com.atomist.source.SimpleSourceUpdateInfo;
-import com.atomist.source.StringFileArtifact;
-import com.atomist.source.file.StreamingZipFileOutput;
-import com.atomist.source.file.ZipFileArtifactSourceWriter;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -38,19 +20,31 @@ import org.eclipse.aether.util.repository.ConservativeProxySelector;
 import org.eclipse.aether.util.repository.JreProxySelector;
 import org.springframework.util.Assert;
 
+import com.atomist.project.archive.Rugs;
+import com.atomist.rug.resolver.ArtifactDescriptor;
+import com.atomist.rug.resolver.manifest.Manifest;
+import com.atomist.rug.resolver.manifest.ManifestFactory;
+import com.atomist.rug.resolver.manifest.ManifestPomWriter;
+import com.atomist.rug.resolver.manifest.ManifestWriter;
+import com.atomist.rug.resolver.maven.MavenConfiguration;
+import com.atomist.rug.resolver.metadata.MetadataWriter;
+import com.atomist.rug.resolver.project.GitInfo;
+import com.atomist.rug.resolver.project.ProvenanceInfoArtifactSourceWriter;
+import com.atomist.source.ArtifactSource;
+import com.atomist.source.FileArtifact;
+import com.atomist.source.FileEditor;
+import com.atomist.source.SimpleSourceUpdateInfo;
+import com.atomist.source.StringFileArtifact;
+import com.atomist.source.file.StreamingZipFileOutput;
+import com.atomist.source.file.ZipFileArtifactSourceWriter;
+
 public abstract class AbstractMavenBasedDeployer implements Deployer {
 
-    private String localRepository = null;
     private DeployerEventListener listener = new DefaultDeployerEventListener();
+    private String localRepository = null;
 
     public AbstractMavenBasedDeployer(String localRespository) {
         this.localRepository = localRespository;
-    }
-
-    @Override
-    public void registerEventListener(DeployerEventListener listener) {
-        Assert.notNull(listener);
-        this.listener = listener;
     }
 
     @Override
@@ -86,22 +80,11 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
         doWithRepositorySession(system, session, source, manifest, zip, pom, metadata);
     }
 
-    protected ArtifactSource generateMetadata(Rugs operationsAndHandlers,
-            ArtifactDescriptor artifact, ArtifactSource source, Manifest manifest) {
-        listener.metadataGenerationStarted();
-        source = writePomAndManifest(artifact, source, manifest);
-        GitInfo info = getGitInfo();
-        source = writeProvenanceInfo(info, source);
-        source = writeMetadata(operationsAndHandlers, artifact, source, info);
-        listener.metadataGenerationFinished();
-        return source;
+    @Override
+    public void registerEventListener(DeployerEventListener listener) {
+        Assert.notNull(listener);
+        this.listener = listener;
     }
-
-    protected abstract void doWithRepositorySession(RepositorySystem system,
-            RepositorySystemSession session, ArtifactSource source, Manifest manifest, Artifact zip,
-            Artifact pom, Artifact metadata);
-
-    protected abstract GitInfo getGitInfo();
 
     private DefaultRepositorySystemSession createRepositorySession() {
         DefaultRepositorySystemSession session = MavenRepositorySystemUtils.newSession();
@@ -211,4 +194,21 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
     private ArtifactSource writeProvenanceInfo(GitInfo provenanceInfo, ArtifactSource source) {
         return ProvenanceInfoArtifactSourceWriter.write(provenanceInfo, source);
     }
+
+    protected abstract void doWithRepositorySession(RepositorySystem system,
+            RepositorySystemSession session, ArtifactSource source, Manifest manifest, Artifact zip,
+            Artifact pom, Artifact metadata);
+
+    protected ArtifactSource generateMetadata(Rugs operationsAndHandlers,
+            ArtifactDescriptor artifact, ArtifactSource source, Manifest manifest) {
+        listener.metadataGenerationStarted();
+        source = writePomAndManifest(artifact, source, manifest);
+        GitInfo info = getGitInfo();
+        source = writeProvenanceInfo(info, source);
+        source = writeMetadata(operationsAndHandlers, artifact, source, info);
+        listener.metadataGenerationFinished();
+        return source;
+    }
+
+    protected abstract GitInfo getGitInfo();
 }

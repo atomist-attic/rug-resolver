@@ -1,11 +1,5 @@
 package com.atomist.rug.resolver.maven;
 
-import com.atomist.rug.resolver.ArtifactDescriptor;
-import com.atomist.rug.resolver.ArtifactDescriptorFactory;
-import com.atomist.rug.resolver.DefaultArtifactDescriptor;
-import com.atomist.rug.resolver.DependencyResolver;
-import com.atomist.rug.resolver.DependencyResolverException;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -54,6 +48,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
+import com.atomist.rug.resolver.ArtifactDescriptor;
+import com.atomist.rug.resolver.ArtifactDescriptorFactory;
+import com.atomist.rug.resolver.DefaultArtifactDescriptor;
+import com.atomist.rug.resolver.DependencyResolver;
+import com.atomist.rug.resolver.DependencyResolverException;
+
 import io.takari.aether.localrepo.TakariLocalRepositoryManagerFactory;
 
 @Component
@@ -62,13 +62,13 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
     private static final Logger logger = LoggerFactory
             .getLogger(MavenBasedDependencyResolver.class);
 
-    private final MavenProperties properties;
-    private final RepositorySystem repoSystem;
-    private final ExecutorService executorService;
-    private TransferListener transferListener;
-    private ProxySelector proxySelector;
-    private List<String> exclusions = new ArrayList<>();
     private List<DependencyVisitor> additionalVisitors = new ArrayList<>();
+    private List<String> exclusions = new ArrayList<>();
+    private final ExecutorService executorService;
+    private final MavenProperties properties;
+    private ProxySelector proxySelector;
+    private final RepositorySystem repoSystem;
+    private TransferListener transferListener;
 
     @Autowired
     public MavenBasedDependencyResolver(RepositorySystem repoSystem, MavenProperties properties,
@@ -84,23 +84,36 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
         this.additionalVisitors.add(visitor);
     }
 
-    public void setExclusions(List<String> exclusions) {
-        this.exclusions = exclusions;
-    }
-
-    public void setTransferListener(TransferListener transferListener) {
-        this.transferListener = transferListener;
-    }
-
-    public void setProxySelector(ProxySelector proxySelector) {
-        this.proxySelector = proxySelector;
-    }
-
     @Override
-    public String resolveVersion(ArtifactDescriptor artifact) throws DependencyResolverException {
-        RepositorySystemSession session = newSession(repoSystem, createDependencyRoot(artifact));
+    public List<ArtifactDescriptor> resolveDirectDependencies(ArtifactDescriptor artifactDescriptor)
+            throws DependencyResolverException {
+
+        RepositorySystemSession session = newSession(repoSystem,
+                createDependencyRoot(artifactDescriptor));
         List<RemoteRepository> remotes = properties.repositories();
-        return getVersion(artifact, session, remotes);
+
+        Artifact artifact = new DefaultArtifact(
+                String.format("%s:%s:%s", artifactDescriptor.group(), artifactDescriptor.artifact(),
+                        artifactDescriptor.version()));
+
+        ArtifactDescriptorRequest descriptorRequest = new ArtifactDescriptorRequest();
+        descriptorRequest.setArtifact(artifact);
+        descriptorRequest.setRepositories(remotes);
+
+        try {
+            return repoSystem.readArtifactDescriptor(session, descriptorRequest).getDependencies()
+                    .stream()
+                    .map(d -> new DefaultArtifactDescriptor(d.getArtifact().getGroupId(),
+                            d.getArtifact().getArtifactId(), d.getArtifact().getVersion(),
+                            ArtifactDescriptorFactory.toExtension(d.getArtifact().getExtension()),
+                            ArtifactDescriptorFactory.toScope(d.getScope()), null))
+                    .collect(Collectors.toList());
+        }
+        catch (ArtifactDescriptorException e) {
+            throw new DependencyResolverException(String.format(
+                    "Failed to collect dependencies for %s:%s:%s", artifactDescriptor.group(),
+                    artifactDescriptor.artifact(), artifactDescriptor.version()), e);
+        }
     }
 
     @Override
@@ -172,53 +185,22 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
     }
 
     @Override
-    public List<ArtifactDescriptor> resolveDirectDependencies(ArtifactDescriptor artifactDescriptor)
-            throws DependencyResolverException {
-
-        RepositorySystemSession session = newSession(repoSystem,
-                createDependencyRoot(artifactDescriptor));
+    public String resolveVersion(ArtifactDescriptor artifact) throws DependencyResolverException {
+        RepositorySystemSession session = newSession(repoSystem, createDependencyRoot(artifact));
         List<RemoteRepository> remotes = properties.repositories();
-
-        Artifact artifact = new DefaultArtifact(
-                String.format("%s:%s:%s", artifactDescriptor.group(), artifactDescriptor.artifact(),
-                        artifactDescriptor.version()));
-
-        ArtifactDescriptorRequest descriptorRequest = new ArtifactDescriptorRequest();
-        descriptorRequest.setArtifact(artifact);
-        descriptorRequest.setRepositories(remotes);
-
-        try {
-            return repoSystem.readArtifactDescriptor(session, descriptorRequest).getDependencies()
-                    .stream()
-                    .map(d -> new DefaultArtifactDescriptor(d.getArtifact().getGroupId(),
-                            d.getArtifact().getArtifactId(), d.getArtifact().getVersion(),
-                            ArtifactDescriptorFactory.toExtension(d.getArtifact().getExtension()),
-                            ArtifactDescriptorFactory.toScope(d.getScope()), null))
-                    .collect(Collectors.toList());
-        }
-        catch (ArtifactDescriptorException e) {
-            throw new DependencyResolverException(String.format(
-                    "Failed to collect dependencies for %s:%s:%s", artifactDescriptor.group(),
-                    artifactDescriptor.artifact(), artifactDescriptor.version()), e);
-        }
+        return getVersion(artifact, session, remotes);
     }
 
-    protected Dependency createDependencyRoot(ArtifactDescriptor artifactDescriptor) {
-        Artifact artifact = null;
-        if (artifactDescriptor.classifier() == null) {
-            artifact = new DefaultArtifact(String.format("%s:%s:%s:%s", artifactDescriptor.group(),
-                    artifactDescriptor.artifact(),
-                    artifactDescriptor.extension().toString().toLowerCase(),
-                    artifactDescriptor.version()));
-            return new Dependency(artifact, "compile");
-        }
-        else {
-            artifact = new DefaultArtifact(String.format("%s:%s:%s:%s:%s",
-                    artifactDescriptor.group(), artifactDescriptor.artifact(),
-                    artifactDescriptor.extension().toString().toLowerCase(),
-                    artifactDescriptor.classifier(), artifactDescriptor.version()));
-            return new Dependency(artifact, "compile", true);
-        }
+    public void setExclusions(List<String> exclusions) {
+        this.exclusions = exclusions;
+    }
+
+    public void setProxySelector(ProxySelector proxySelector) {
+        this.proxySelector = proxySelector;
+    }
+
+    public void setTransferListener(TransferListener transferListener) {
+        this.transferListener = transferListener;
     }
 
     private List<DependencyNode> collectDependencies(ArtifactDescriptor artifact,
@@ -366,5 +348,23 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
         session.setConfigProperty("aether.artifactResolver.snapshotNormalization", true);
 
         return session;
+    }
+
+    protected Dependency createDependencyRoot(ArtifactDescriptor artifactDescriptor) {
+        Artifact artifact = null;
+        if (artifactDescriptor.classifier() == null) {
+            artifact = new DefaultArtifact(String.format("%s:%s:%s:%s", artifactDescriptor.group(),
+                    artifactDescriptor.artifact(),
+                    artifactDescriptor.extension().toString().toLowerCase(),
+                    artifactDescriptor.version()));
+            return new Dependency(artifact, "compile");
+        }
+        else {
+            artifact = new DefaultArtifact(String.format("%s:%s:%s:%s:%s",
+                    artifactDescriptor.group(), artifactDescriptor.artifact(),
+                    artifactDescriptor.extension().toString().toLowerCase(),
+                    artifactDescriptor.classifier(), artifactDescriptor.version()));
+            return new Dependency(artifact, "compile", true);
+        }
     }
 }

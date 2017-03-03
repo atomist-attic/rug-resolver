@@ -2,10 +2,10 @@ package com.atomist.rug.resolver.git;
 
 public class RepositoryDetails {
 
-    private String repo;
     private String branch;
-    private String time;
+    private String repo;
     private String sha;
+    private String time;
 
     public RepositoryDetails(String repo, String branch, String sha, String time) {
         this.repo = repo;
@@ -14,12 +14,12 @@ public class RepositoryDetails {
         this.time = time;
     }
 
-    public String repo() {
-        return repo;
-    }
-
     public String branch() {
         return branch;
+    }
+
+    public String repo() {
+        return repo;
     }
 
     public String sha() {

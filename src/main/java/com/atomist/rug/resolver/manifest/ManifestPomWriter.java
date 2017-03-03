@@ -1,8 +1,5 @@
 package com.atomist.rug.resolver.manifest;
 
-import com.atomist.rug.resolver.ArtifactDescriptor;
-import com.atomist.rug.resolver.ArtifactDescriptor.Extension;
-
 import java.io.IOException;
 import java.io.StringWriter;
 
@@ -10,6 +7,9 @@ import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Repository;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
+
+import com.atomist.rug.resolver.ArtifactDescriptor;
+import com.atomist.rug.resolver.ArtifactDescriptor.Extension;
 
 public class ManifestPomWriter {
 
@@ -30,6 +30,39 @@ public class ManifestPomWriter {
         catch (IOException e) {
         }
         return sw.toString();
+    }
+
+    private void addArchiveDependencies(Manifest manifest, Model model) {
+        // add rug archive dependencies
+        manifest.dependencies().forEach(d -> {
+            Dependency rugArchive = new Dependency();
+            rugArchive.setGroupId(d.group());
+            rugArchive.setArtifactId(d.artifact());
+            rugArchive.setVersion(d.version());
+            rugArchive.setType("zip");
+            model.addDependency(rugArchive);
+
+            // add dependency on metadata.json to pom model
+            Dependency rugArchiveMetadata = new Dependency();
+            rugArchiveMetadata.setGroupId(d.group());
+            rugArchiveMetadata.setArtifactId(d.artifact());
+            rugArchiveMetadata.setVersion(d.version());
+            rugArchiveMetadata.setType("json");
+            rugArchiveMetadata.setClassifier("metadata");
+            rugArchiveMetadata.setOptional(true);
+            model.addDependency(rugArchiveMetadata);
+        });
+    }
+
+    private void addBinaryDependencies(Manifest manifest, Model model) {
+        // add extension types
+        manifest.extensions().forEach(e -> {
+            Dependency rugExtension = new Dependency();
+            rugExtension.setGroupId(e.group());
+            rugExtension.setArtifactId(e.artifact());
+            rugExtension.setVersion(e.version());
+            model.addDependency(rugExtension);
+        });
     }
 
     private void addProjectInformation(Manifest manifest, ArtifactDescriptor artifact,
@@ -56,39 +89,6 @@ public class ManifestPomWriter {
             repo.setUrl(r.url());
             repo.setLayout("default");
             model.addRepository(repo);
-        });
-    }
-
-    private void addBinaryDependencies(Manifest manifest, Model model) {
-        // add extension types
-        manifest.extensions().forEach(e -> {
-            Dependency rugExtension = new Dependency();
-            rugExtension.setGroupId(e.group());
-            rugExtension.setArtifactId(e.artifact());
-            rugExtension.setVersion(e.version());
-            model.addDependency(rugExtension);
-        });
-    }
-
-    private void addArchiveDependencies(Manifest manifest, Model model) {
-        // add rug archive dependencies
-        manifest.dependencies().forEach(d -> {
-            Dependency rugArchive = new Dependency();
-            rugArchive.setGroupId(d.group());
-            rugArchive.setArtifactId(d.artifact());
-            rugArchive.setVersion(d.version());
-            rugArchive.setType("zip");
-            model.addDependency(rugArchive);
-
-            // add dependency on metadata.json to pom model
-            Dependency rugArchiveMetadata = new Dependency();
-            rugArchiveMetadata.setGroupId(d.group());
-            rugArchiveMetadata.setArtifactId(d.artifact());
-            rugArchiveMetadata.setVersion(d.version());
-            rugArchiveMetadata.setType("json");
-            rugArchiveMetadata.setClassifier("metadata");
-            rugArchiveMetadata.setOptional(true);
-            model.addDependency(rugArchiveMetadata);
         });
     }
 

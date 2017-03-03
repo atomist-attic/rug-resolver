@@ -3,13 +3,13 @@ package com.atomist.rug.resolver.manifest;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.atomist.source.ArtifactSource;
-import com.atomist.source.file.FileSystemArtifactSource;
-import com.atomist.source.file.SimpleFileSystemArtifactSourceIdentifier;
-
 import java.io.File;
 
 import org.junit.Test;
+
+import com.atomist.source.ArtifactSource;
+import com.atomist.source.file.FileSystemArtifactSource;
+import com.atomist.source.file.SimpleFileSystemArtifactSourceIdentifier;
 
 public class ManifestReaderTest {
 
