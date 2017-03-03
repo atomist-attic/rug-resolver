@@ -6,8 +6,7 @@ import com.atomist.param.ParameterValue;
 import com.atomist.param.ParameterValues;
 import com.atomist.param.SimpleParameterValues;
 import com.atomist.param.Tag;
-import com.atomist.project.archive.DefaultAtomistConfig$;
-import com.atomist.project.archive.DefaultRugArchiveReader;
+import com.atomist.project.archive.RugArchiveReader;
 import com.atomist.project.archive.Rugs;
 import com.atomist.project.common.InvalidParametersException;
 import com.atomist.project.common.MissingParametersException;
@@ -18,7 +17,6 @@ import com.atomist.project.generate.ProjectGenerator;
 import com.atomist.project.review.ProjectReviewer;
 import com.atomist.project.review.ReviewResult;
 import com.atomist.rug.RugRuntimeException;
-import com.atomist.rug.kind.DefaultTypeRegistry$;
 import com.atomist.rug.resolver.ArtifactDescriptor;
 import com.atomist.rug.resolver.ArtifactDescriptorFactory;
 import com.atomist.rug.resolver.DefaultArtifactDescriptor;
@@ -50,11 +48,9 @@ import com.atomist.tree.content.project.ResourceSpecifier;
 import com.atomist.tree.content.project.SimpleResourceSpecifier;
 import com.typesafe.scalalogging.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.StringUtils;
 import scala.Option;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
-import scala.collection.mutable.ListBuffer;
 import scala.runtime.AbstractFunction1;
 
 import java.io.File;
@@ -623,7 +619,6 @@ public class ProvenanceAddingRugLoader implements RugLoader{
         dependencies = postProcessArfifactDescriptors(artifact, dependencies);
 
         List<Rug> otherOperations = new ArrayList<>();
-        DefaultRugArchiveReader reader = operationsReader();
 
         Rugs operations = null;
 
@@ -633,7 +628,7 @@ public class ProvenanceAddingRugLoader implements RugLoader{
                     ArtifactDescriptor.Extension.ZIP)) {
                 ArtifactSource artifactSource = createArtifactSource(ad);
                 otherOperations.addAll(asJavaCollectionConverter(
-                        loadArtifact(ad, artifactSource, reader, Collections.emptyList())
+                        loadArtifact(ad, artifactSource, Collections.emptyList())
                                 .allRugs()).asJavaCollection());
             }
         }
@@ -651,7 +646,7 @@ public class ProvenanceAddingRugLoader implements RugLoader{
                     source = createArtifactSource(ad);
                 }
 
-                operations = loadArtifact(ad, source, reader, decorated);
+                operations = loadArtifact(ad, source, decorated);
             }
         }
 
@@ -695,10 +690,9 @@ public class ProvenanceAddingRugLoader implements RugLoader{
         return null;
     }
 
-    protected Rugs loadArtifact(ArtifactDescriptor artifact, ArtifactSource source,
-                                DefaultRugArchiveReader reader, List<AddressableRug> otherOperations) throws RugLoaderException {
+    protected Rugs loadArtifact(ArtifactDescriptor artifact, ArtifactSource source, List<AddressableRug> otherOperations) throws RugLoaderException {
         try {
-            return reader.find(source, asScalaBufferConverter(otherOperations).asScala().toList());
+            return RugArchiveReader.find(source, asScalaBufferConverter(otherOperations).asScala().toList());
         } catch (RugRuntimeException e) {
             LOGGER.error(String.format("Failed to load Rug archive for %s:%s:%s", artifact.group(),
                     artifact.artifact(), artifact.version()), e);
@@ -708,8 +702,4 @@ public class ProvenanceAddingRugLoader implements RugLoader{
         }
     }
 
-    protected DefaultRugArchiveReader operationsReader() {
-        return new DefaultRugArchiveReader(DefaultAtomistConfig$.MODULE$,
-                DefaultTypeRegistry$.MODULE$);
-    }
 }
