@@ -81,6 +81,15 @@ public class ProvenanceAddingRugLoader implements RugLoader{
         this.resolver = resolver;
     }
 
+    protected List<AddressableRug> decorate(ArtifactDescriptor ad, Seq<Rug> rugs, ArtifactSource source) {
+        return decorate(ad, new ArrayList<>(asJavaCollectionConverter(rugs).asJavaCollection()), source);
+    }
+
+    protected Rugs decorate(ArtifactDescriptor ad, Rugs rugs, ArtifactSource source) {
+        List<AddressableRug> decorated = decorate(ad, new ArrayList<>(asJavaCollectionConverter(rugs.allRugs()).asJavaCollection()), source);
+        return Rugs.apply(asScalaBufferConverter(decorated).asScala().toSeq());
+    }
+
     protected List<AddressableRug> decorate (ArtifactDescriptor artifact, List<Rug> operations,
                                ArtifactSource source) {
 
@@ -618,24 +627,19 @@ public class ProvenanceAddingRugLoader implements RugLoader{
 
         dependencies = postProcessArfifactDescriptors(artifact, dependencies);
 
-        List<Rug> otherOperations = new ArrayList<>();
+        List<AddressableRug> decorated = new ArrayList<>();
 
         Rugs operations = null;
 
-        //first collect up all the otherOperations
+        //first collect up all the other operations and decorate them
         for (ArtifactDescriptor ad : dependencies) {
             if (!ad.match(artifact.group(), artifact.artifact(), artifact.version(),
                     ArtifactDescriptor.Extension.ZIP)) {
                 ArtifactSource artifactSource = createArtifactSource(ad);
-                otherOperations.addAll(asJavaCollectionConverter(
-                        loadArtifact(ad, artifactSource, Collections.emptyList())
-                                .allRugs()).asJavaCollection());
+                Seq<Rug> justLoaded = loadArtifact(ad, artifactSource, Collections.emptyList()).allRugs();
+                decorated.addAll(decorate(ad, justLoaded, artifactSource));
             }
         }
-
-        //now decorate them
-
-        List<AddressableRug> decorated = decorate(artifact,otherOperations,source);
 
         //now load the current ones
         for (ArtifactDescriptor ad : dependencies) {
@@ -659,7 +663,7 @@ public class ProvenanceAddingRugLoader implements RugLoader{
                     artifact.artifact(), artifact.version(), operations.toString()));
         }
 
-        return operations;
+        return decorate(artifact, operations, source);
     }
 
 
