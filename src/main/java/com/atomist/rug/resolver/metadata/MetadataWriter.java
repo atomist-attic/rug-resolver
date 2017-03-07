@@ -7,11 +7,13 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
+import com.atomist.param.MappedParameter;
 import com.atomist.param.Parameter;
 import com.atomist.param.Tag;
 import com.atomist.project.archive.Rugs;
 import com.atomist.rug.resolver.ArtifactDescriptor;
 import com.atomist.rug.resolver.project.GitInfo;
+import com.atomist.rug.spi.Secret;
 import com.atomist.source.ArtifactSource;
 import com.atomist.source.FileArtifact;
 import com.atomist.source.StringFileArtifact;
@@ -45,6 +47,8 @@ public abstract class MetadataWriter {
         try {
             ArchiveMetadata metadata = new ArchiveMetadata(operationsAndHandlers, artifact, info);
             String metadataJson = objectMapper(format).writeValueAsString(metadata);
+            metadataJson = metadataJson.replace("\"max_length\"", "\"max-length\"");
+            metadataJson = metadataJson.replace("\"min_length\"", "\"min-length\"");
             return new StringFileArtifact("metadata.json", ".atomist", metadataJson);
         }
         catch (JsonProcessingException e) {
@@ -83,6 +87,7 @@ public abstract class MetadataWriter {
 
         public MetadataModule() {
             addSerializer(Tag.class, new TagSerializer());
+            addSerializer(MappedParameter.class, new MappedParameterSerializer());
         }
     }
 
@@ -94,6 +99,18 @@ public abstract class MetadataWriter {
             gen.writeStartObject();
             gen.writeStringField("name", value.name());
             gen.writeStringField("description", value.description());
+            gen.writeEndObject();
+        }
+    }
+
+    public static class MappedParameterSerializer extends JsonSerializer<MappedParameter> {
+
+        @Override
+        public void serialize(MappedParameter value, JsonGenerator gen,
+                SerializerProvider serializers) throws IOException, JsonProcessingException {
+            gen.writeStartObject();
+            gen.writeStringField("local-key", value.localKey());
+            gen.writeStringField("foreign-key", value.foreignKey());
             gen.writeEndObject();
         }
     }
@@ -178,6 +195,12 @@ public abstract class MetadataWriter {
         @JsonProperty
         private Collection<Parameter> parameters;
 
+        @JsonProperty("mapped-parameters")
+        private Collection<MappedParameter> mappedParameters;
+
+        @JsonProperty
+        private Collection<Secret> secrets;
+
         @JsonProperty
         private Collection<Tag> tags;
 
@@ -187,6 +210,10 @@ public abstract class MetadataWriter {
             intent = JavaConverters.asJavaCollectionConverter(handler.intent()).asJavaCollection();
             tags = JavaConverters.asJavaCollectionConverter(handler.tags()).asJavaCollection();
             parameters = JavaConverters.asJavaCollectionConverter(handler.parameters())
+                    .asJavaCollection();
+            mappedParameters = JavaConverters.asJavaCollectionConverter(handler.mappedParameters())
+                    .asJavaCollection();
+            secrets = JavaConverters.asJavaCollectionConverter(handler.secrets())
                     .asJavaCollection();
         }
     }
