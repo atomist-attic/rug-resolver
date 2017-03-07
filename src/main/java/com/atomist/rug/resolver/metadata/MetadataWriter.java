@@ -93,7 +93,7 @@ public abstract class MetadataWriter {
                 throws IOException, JsonProcessingException {
             gen.writeStartObject();
             gen.writeStringField("name", value.name());
-            gen.writeStringField("decription", value.description());
+            gen.writeStringField("description", value.description());
             gen.writeEndObject();
         }
     }
@@ -199,7 +199,7 @@ public abstract class MetadataWriter {
         @JsonProperty
         private String name;
 
-        @JsonProperty
+        @JsonProperty("root-node")
         private String rootNode;
 
         @JsonProperty
