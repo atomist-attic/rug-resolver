@@ -47,19 +47,37 @@ class ManifestReader {
                     manifest.setRequires(requires);
                 }
 
-                List<String> dependencies = (List<String>) manifestYaml.getOrDefault("dependencies",
+                List<Object> dependencies = (List<Object>) manifestYaml.getOrDefault("dependencies",
                         Collections.emptyList());
-                List<String> extensions = (List<String>) manifestYaml.getOrDefault("extensions",
+                List<Object> extensions = (List<Object>) manifestYaml.getOrDefault("extensions",
                         Collections.emptyList());
 
                 Map<String, Map<String, String>> repositories = (Map<String, Map<String, String>>) manifestYaml
                         .getOrDefault("repositories", Collections.emptyMap());
 
                 if (dependencies != null) {
-                    dependencies.forEach(d -> manifest.addDependency(Gav.formString(d)));
+                    dependencies.forEach(d -> {
+                        if (d instanceof String) {
+                            manifest.addDependency(Gav.formString((String) d));
+                        }
+                        else if (d instanceof Map) {
+                            ((Map<String, String>) d).entrySet()
+                                    .forEach(e -> manifest.addDependency(
+                                            Gav.formString(e.getKey() + ":" + e.getValue())));
+                        }
+                    });
                 }
                 if (extensions != null) {
-                    extensions.forEach(e -> manifest.addExtension(Gav.formString(e)));
+                    extensions.forEach(e -> {
+                        if (e instanceof String) {
+                            manifest.addExtension(Gav.formString((String) e));
+                        }
+                        else if (e instanceof Map) {
+                            ((Map<String, String>) e).entrySet()
+                                    .forEach(me -> manifest.addExtension(
+                                            Gav.formString(me.getKey() + ":" + me.getValue())));
+                        }
+                    });
                 }
                 if (repositories != null) {
                     repositories.entrySet().forEach(r -> manifest
