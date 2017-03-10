@@ -19,7 +19,7 @@
 		<scala.version>2.11.8</scala.version>
 		<scala.binary.version>2.11</scala.binary.version>
 		<scoverage.plugin.version>1.3.0</scoverage.plugin.version>
-		<rug.version>(0.12.9,0.13.1)</rug.version>
+		<rug.version>0.13.0</rug.version>
 	</properties>
 	<licenses>
 		<license>
