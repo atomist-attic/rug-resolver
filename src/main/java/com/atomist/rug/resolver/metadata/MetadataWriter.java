@@ -47,8 +47,6 @@ public abstract class MetadataWriter {
         try {
             ArchiveMetadata metadata = new ArchiveMetadata(operationsAndHandlers, artifact, info);
             String metadataJson = objectMapper(format).writeValueAsString(metadata);
-            metadataJson = metadataJson.replace("\"max_length\"", "\"max-length\"");
-            metadataJson = metadataJson.replace("\"min_length\"", "\"min-length\"");
             return new StringFileArtifact("metadata.json", ".atomist", metadataJson);
         }
         catch (JsonProcessingException e) {
@@ -109,8 +107,8 @@ public abstract class MetadataWriter {
         public void serialize(MappedParameter value, JsonGenerator gen,
                 SerializerProvider serializers) throws IOException, JsonProcessingException {
             gen.writeStartObject();
-            gen.writeStringField("local-key", value.localKey());
-            gen.writeStringField("foreign-key", value.foreignKey());
+            gen.writeStringField("local_key", value.localKey());
+            gen.writeStringField("foreign_key", value.foreignKey());
             gen.writeEndObject();
         }
     }
@@ -120,13 +118,13 @@ public abstract class MetadataWriter {
         @JsonProperty
         private String artifact;
 
-        @JsonProperty("command-handlers")
+        @JsonProperty("command_handlers")
         private List<CommandHandler> commandHandlers;
 
         @JsonProperty
         private List<ProjectOperation> editors;
 
-        @JsonProperty("event-handlers")
+        @JsonProperty("event_handlers")
         private List<EventHandler> eventHandlers;
 
         @JsonProperty
@@ -139,7 +137,7 @@ public abstract class MetadataWriter {
         @JsonProperty
         private Origin origin;
 
-        @JsonProperty("response-handlers")
+        @JsonProperty("response_handlers")
         private List<ResponseHandler> responseHandlers;
 
         @JsonProperty
@@ -195,7 +193,7 @@ public abstract class MetadataWriter {
         @JsonProperty
         private Collection<Parameter> parameters;
 
-        @JsonProperty("mapped-parameters")
+        @JsonProperty("mapped_parameters")
         private Collection<MappedParameter> mappedParameters;
 
         @JsonProperty
@@ -226,7 +224,7 @@ public abstract class MetadataWriter {
         @JsonProperty
         private String name;
 
-        @JsonProperty("root-node")
+        @JsonProperty("root_node")
         private String rootNode;
 
         @JsonProperty
