@@ -13,7 +13,6 @@ import com.atomist.param.Tag;
 import com.atomist.project.archive.Rugs;
 import com.atomist.rug.resolver.ArtifactDescriptor;
 import com.atomist.rug.resolver.project.GitInfo;
-import com.atomist.rug.spi.Secret;
 import com.atomist.source.ArtifactSource;
 import com.atomist.source.FileArtifact;
 import com.atomist.source.StringFileArtifact;
@@ -197,7 +196,7 @@ public abstract class MetadataWriter {
         private Collection<MappedParameter> mappedParameters;
 
         @JsonProperty
-        private Collection<Secret> secrets;
+        private Collection<String> secrets;
 
         @JsonProperty
         private Collection<Tag> tags;
@@ -211,8 +210,8 @@ public abstract class MetadataWriter {
                     .asJavaCollection();
             mappedParameters = JavaConverters.asJavaCollectionConverter(handler.mappedParameters())
                     .asJavaCollection();
-            secrets = JavaConverters.asJavaCollectionConverter(handler.secrets())
-                    .asJavaCollection();
+            secrets = JavaConverters.asJavaCollectionConverter(handler.secrets()).asJavaCollection()
+                    .stream().map(s -> s.path()).collect(Collectors.toList());
         }
     }
 
