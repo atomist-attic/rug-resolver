@@ -12,6 +12,9 @@ import com.atomist.param.Parameter;
 import com.atomist.param.Tag;
 import com.atomist.project.archive.Rugs;
 import com.atomist.rug.resolver.ArtifactDescriptor;
+import com.atomist.rug.resolver.manifest.Manifest;
+import com.atomist.rug.resolver.manifest.ManifestFactory;
+import com.atomist.rug.resolver.manifest.ManifestUtils;
 import com.atomist.rug.resolver.project.GitInfo;
 import com.atomist.source.ArtifactSource;
 import com.atomist.source.FileArtifact;
@@ -43,8 +46,20 @@ public abstract class MetadataWriter {
 
     public static FileArtifact create(Rugs operationsAndHandlers, ArtifactDescriptor artifact,
             ArtifactSource source, GitInfo info, Format format) {
+        return create(operationsAndHandlers, artifact, source, info, format, true);
+    }
+
+    public static FileArtifact createWithoutExcludes(Rugs operationsAndHandlers,
+            ArtifactDescriptor artifact, ArtifactSource source, GitInfo info) {
+        return create(operationsAndHandlers, artifact, source, info, Format.JSON, false);
+    }
+
+    private static FileArtifact create(Rugs operationsAndHandlers, ArtifactDescriptor artifact,
+            ArtifactSource source, GitInfo info, Format format, boolean exclude) {
         try {
-            ArchiveMetadata metadata = new ArchiveMetadata(operationsAndHandlers, artifact, info);
+            Manifest manifest = (exclude ? ManifestFactory.read(source) : new Manifest());
+            ArchiveMetadata metadata = new ArchiveMetadata(manifest, operationsAndHandlers,
+                    artifact, info);
             String metadataJson = objectMapper(format).writeValueAsString(metadata);
             return new StringFileArtifact("metadata.json", ".atomist", metadataJson);
         }
@@ -145,29 +160,29 @@ public abstract class MetadataWriter {
         @JsonProperty
         private String version;
 
-        public ArchiveMetadata(Rugs rugs, ArtifactDescriptor artifact, GitInfo info) {
+        public ArchiveMetadata(Manifest manifest, Rugs rugs, ArtifactDescriptor artifact,
+                GitInfo info) {
 
             // Handlers handlers = operationsAndHandlers.handlers();
             this.editors = JavaConverters.asJavaCollectionConverter(rugs.editors())
-                    .asJavaCollection().stream().map(ProjectOperation::new)
-                    .collect(Collectors.toList());
+                    .asJavaCollection().stream().filter(p -> !ManifestUtils.excluded(p, manifest))
+                    .map(ProjectOperation::new).collect(Collectors.toList());
             this.generators = JavaConverters.asJavaCollectionConverter(rugs.generators())
-                    .asJavaCollection().stream().map(ProjectOperation::new)
-                    .collect(Collectors.toList());
+                    .asJavaCollection().stream().filter(p -> !ManifestUtils.excluded(p, manifest))
+                    .map(ProjectOperation::new).collect(Collectors.toList());
             this.reviewers = JavaConverters.asJavaCollectionConverter(rugs.reviewers())
-                    .asJavaCollection().stream().map(ProjectOperation::new)
-                    .collect(Collectors.toList());
+                    .asJavaCollection().stream().filter(p -> !ManifestUtils.excluded(p, manifest))
+                    .map(ProjectOperation::new).collect(Collectors.toList());
             this.eventHandlers = JavaConverters.asJavaCollectionConverter(rugs.eventHandlers())
-                    .asJavaCollection().stream().map(EventHandler::new)
-                    .collect(Collectors.toList());
-
+                    .asJavaCollection().stream().filter(p -> !ManifestUtils.excluded(p, manifest))
+                    .map(EventHandler::new).collect(Collectors.toList());
             this.commandHandlers = JavaConverters.asJavaCollectionConverter(rugs.commandHandlers())
-                    .asJavaCollection().stream().map(CommandHandler::new)
-                    .collect(Collectors.toList());
-
+                    .asJavaCollection().stream().filter(p -> !ManifestUtils.excluded(p, manifest))
+                    .map(CommandHandler::new).collect(Collectors.toList());
             this.responseHandlers = JavaConverters
                     .asJavaCollectionConverter(rugs.responseHandlers()).asJavaCollection().stream()
-                    .map(ResponseHandler::new).collect(Collectors.toList());
+                    .filter(p -> !ManifestUtils.excluded(p, manifest)).map(ResponseHandler::new)
+                    .collect(Collectors.toList());
             this.group = artifact.group();
             this.artifact = artifact.artifact();
             this.version = artifact.version();

@@ -51,6 +51,8 @@ class ManifestReader {
                         Collections.emptyList());
                 List<Object> extensions = (List<Object>) manifestYaml.getOrDefault("extensions",
                         Collections.emptyList());
+                Map<String, Object> excludes = (Map<String, Object>) manifestYaml
+                        .getOrDefault("excludes", Collections.emptyMap());
 
                 Map<String, Map<String, String>> repositories = (Map<String, Map<String, String>>) manifestYaml
                         .getOrDefault("repositories", Collections.emptyMap());
@@ -82,6 +84,37 @@ class ManifestReader {
                 if (repositories != null) {
                     repositories.entrySet().forEach(r -> manifest
                             .addRepository(new Repository(r.getKey(), r.getValue().get("url"))));
+                }
+                if (excludes != null && !excludes.isEmpty()) {
+                    Excludes ex = new Excludes();
+                    excludes.entrySet().forEach(e -> {
+                        List<String> values = (List<String>) e.getValue();
+                        if (values == null) {
+                            values = Collections.emptyList();
+                        }
+                        switch (e.getKey()) {
+                        case "editors":
+                            values.forEach(v -> ex.addEditor(v));
+                            break;
+                        case "generators":
+                            values.forEach(v -> ex.addGenerator(v));
+                            break;
+                        case "reviewers":
+                            values.forEach(v -> ex.addReviewer(v));
+                            break;
+                        case "command_handlers":
+                            values.forEach(v -> ex.addCommandHandler(v));
+                            break;
+                        case "event_handlers":
+                            values.forEach(v -> ex.addEventHandler(v));
+                            break;
+                        case "response_handlers":
+                            values.forEach(v -> ex.addResponseHandler(v));
+                            break;
+                        default:
+                        }
+                    });
+                    manifest.setExcludes(ex);
                 }
             });
 

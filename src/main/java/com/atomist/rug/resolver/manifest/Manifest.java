@@ -15,17 +15,20 @@ public class Manifest extends Gav {
     public static final String FILE_NAME = "manifest.yml";
 
     private String branch;
+    private String repo;
+    private String sha;
 
     @JsonInclude(Include.NON_EMPTY)
     private List<Gav> dependencies = new ArrayList<>();
     @JsonInclude(Include.NON_EMPTY)
     private List<Gav> extensions = new ArrayList<>();
-    private String repo;
 
     @JsonInclude(Include.NON_EMPTY)
     private List<Repository> repositories = new ArrayList<>();
     private String requires;
-    private String sha;
+    
+    @JsonInclude(Include.NON_EMPTY)
+    private Excludes excludes;
 
     public Manifest() {
     }
@@ -76,6 +79,11 @@ public class Manifest extends Gav {
     public String requires() {
         return requires;
     }
+    
+    @JsonProperty("excludes")
+    public Excludes excludes() {
+        return excludes;
+    }
 
     public void setBranch(String branch) {
         this.branch = branch;
@@ -98,5 +106,9 @@ public class Manifest extends Gav {
     @JsonProperty("sha")
     public String sha() {
         return sha;
+    }
+    
+    public void setExcludes(Excludes excludes) {
+        this.excludes = excludes;
     }
 }
