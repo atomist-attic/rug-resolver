@@ -120,7 +120,7 @@ public class ProvenanceAddingRugLoader implements RugLoader {
             if (!ad.match(artifact.group(), artifact.artifact(), artifact.version(),
                     ArtifactDescriptor.Extension.ZIP)) {
                 ArtifactSource artifactSource = createArtifactSource(ad);
-                Seq<Rug> justLoaded = loadArtifact(ad, artifactSource, Collections.emptyList())
+                Seq<Rug> justLoaded = loadArtifact(ad, artifactSource, decorated)
                         .allRugs();
                 decorated.addAll(decorate(ad, justLoaded, artifactSource));
             }
