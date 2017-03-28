@@ -133,9 +133,10 @@ public class ProvenanceAddingRugLoader implements RugLoader {
                 // Make sure to load the ArtifactSource if it hasn't been provided
                 if (source == null) {
                     source = createArtifactSource(ad);
+                }else{
+                    operations = loadArtifact(ad, source, decorated);
+                    break;
                 }
-
-                operations = loadArtifact(ad, source, decorated);
             }
         }
 
