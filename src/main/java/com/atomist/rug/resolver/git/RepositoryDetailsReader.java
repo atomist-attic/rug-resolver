@@ -17,6 +17,8 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
 public abstract class RepositoryDetailsReader {
+    
+    private static final String PATTERN = "\\/\\/.*@";
 
     public static Optional<RepositoryDetails> read(File projectRoot) throws IOException {
         FileRepositoryBuilder builder = new FileRepositoryBuilder();
@@ -57,12 +59,16 @@ public abstract class RepositoryDetailsReader {
             }
 
             if (url != null && branch != null && sha != null) {
-                return Optional.of(new RepositoryDetails(url, branch, sha, date));
+                return Optional.of(new RepositoryDetails(sanitizeUrl(url), branch, sha, date));
             }
         }
         catch (IllegalArgumentException e) {
             // If jgit can't find a .git directory it throws an IllegalArgumentException
         }
         return Optional.empty();
+    }
+    
+    private static String sanitizeUrl(String url) {
+        return url.replaceAll(PATTERN, "//");
     }
 }
