@@ -1,6 +1,5 @@
 package com.atomist.rug.resolver;
 
-import java.net.URI;
 import java.util.List;
 
 public interface ArtifactDescriptor {
@@ -19,7 +18,7 @@ public interface ArtifactDescriptor {
 
     Scope scope();
 
-    URI uri();
+    String uri();
 
     String version();
 
