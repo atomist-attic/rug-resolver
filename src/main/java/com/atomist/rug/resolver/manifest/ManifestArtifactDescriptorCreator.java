@@ -1,5 +1,6 @@
 package com.atomist.rug.resolver.manifest;
 
+import java.io.File;
 import java.net.URI;
 
 import com.atomist.rug.resolver.ArtifactDescriptor;
@@ -13,7 +14,8 @@ public class ManifestArtifactDescriptorCreator {
     public ArtifactDescriptor create(Manifest manifest, URI uri) {
 
         LocalArtifactDescriptor artifact = new LocalArtifactDescriptor(manifest.group(),
-                manifest.artifact(), manifest.version(), Extension.ZIP, Scope.RUNTIME, uri);
+                manifest.artifact(), manifest.version(), Extension.ZIP, Scope.RUNTIME,
+                new File(uri).getAbsolutePath());
 
         // add rug dependency
         artifact.addDependency(new DefaultArtifactDescriptor("com.atomist", "rug",

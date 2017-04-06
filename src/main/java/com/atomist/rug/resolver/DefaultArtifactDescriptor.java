@@ -1,19 +1,32 @@
 package com.atomist.rug.resolver;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class DefaultArtifactDescriptor implements ArtifactDescriptor {
 
-    private final String artifact;
-    private final String classifier;
+    @JsonProperty
+    private String artifact;
+    @JsonProperty
+    private String classifier;
+    @JsonProperty
     private List<ArtifactDescriptor> dependencies = new ArrayList<>();
-    private final Extension extension;
-    private final String group;
-    private final Scope scope;
-    private final URI uri;
-    private final String version;
+    @JsonProperty
+    private Extension extension;
+    @JsonProperty
+    private String group;
+    @JsonProperty
+    private Scope scope;
+    @JsonProperty
+    private String uri;
+    @JsonProperty
+    private String version;
+
+    public DefaultArtifactDescriptor() {
+
+    }
 
     public DefaultArtifactDescriptor(String group, String artifact, String version,
             Extension extension) {
@@ -21,7 +34,7 @@ public class DefaultArtifactDescriptor implements ArtifactDescriptor {
     }
 
     public DefaultArtifactDescriptor(String group, String artifact, String version,
-            Extension extension, Scope scope, String classifier, URI uri) {
+            Extension extension, Scope scope, String classifier, String uri) {
         this.group = group;
         this.artifact = artifact;
         this.version = version;
@@ -32,7 +45,7 @@ public class DefaultArtifactDescriptor implements ArtifactDescriptor {
     }
 
     public DefaultArtifactDescriptor(String group, String artifact, String version,
-            Extension extension, Scope scope, URI uri) {
+            Extension extension, Scope scope, String uri) {
         this(group, artifact, version, extension, scope, null, uri);
     }
 
@@ -76,13 +89,19 @@ public class DefaultArtifactDescriptor implements ArtifactDescriptor {
     }
 
     @Override
-    public URI uri() {
+    public String uri() {
         return uri;
     }
 
     @Override
     public String version() {
         return version;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s:%s:%s:%s:%s:%s", group, artifact, version, extension, scope,
+                classifier);
     }
 
 }

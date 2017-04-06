@@ -1,8 +1,11 @@
 package com.atomist.rug.resolver.maven;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.FutureTask;
@@ -27,8 +30,6 @@ import org.eclipse.aether.repository.NoLocalRepositoryManagerException;
 import org.eclipse.aether.repository.ProxySelector;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.repository.RepositoryPolicy;
-import org.eclipse.aether.resolution.ArtifactDescriptorException;
-import org.eclipse.aether.resolution.ArtifactDescriptorRequest;
 import org.eclipse.aether.resolution.ArtifactRequest;
 import org.eclipse.aether.resolution.ArtifactResolutionException;
 import org.eclipse.aether.resolution.ArtifactResult;
@@ -85,39 +86,129 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
     }
 
     @Override
-    public List<ArtifactDescriptor> resolveDirectDependencies(ArtifactDescriptor artifactDescriptor)
+    public ArtifactDescriptor resolveRugs(ArtifactDescriptor artifact)
             throws DependencyResolverException {
+        if (logger.isInfoEnabled()) {
+            logger.info(String.format("Resolving rugs for %s:%s:%s:%s", artifact.group(),
+                    artifact.artifact(), artifact.extension().toString().toLowerCase(),
+                    artifact.version()));
+        }
 
-        RepositorySystemSession session = newSession(repoSystem,
-                createDependencyRoot(artifactDescriptor));
+        RepositorySystemSession session = newSession(repoSystem, createDependencyRoot(artifact),
+                false, "*:*");
         List<RemoteRepository> remotes = properties.repositories();
 
-        Artifact artifact = new DefaultArtifact(
-                String.format("%s:%s:%s", artifactDescriptor.group(), artifactDescriptor.artifact(),
-                        artifactDescriptor.version()));
+        CollectRequest collectRequest = new CollectRequest();
+        collectRequest.setRoot(createDependencyRoot(artifact));
+        collectRequest.setRepositories(remotes);
+        artifact.dependencies()
+                .forEach(ad -> collectRequest.addDependency(createDependencyRoot(ad)));
 
-        ArtifactDescriptorRequest descriptorRequest = new ArtifactDescriptorRequest();
-        descriptorRequest.setArtifact(artifact);
-        descriptorRequest.setRepositories(remotes);
+        List<DependencyNode> artifacts = new ArrayList<>();
+        DependencyNode root = null;
 
         try {
-            return repoSystem.readArtifactDescriptor(session, descriptorRequest).getDependencies()
-                    .stream()
-                    .map(d -> new DefaultArtifactDescriptor(d.getArtifact().getGroupId(),
-                            d.getArtifact().getArtifactId(), d.getArtifact().getVersion(),
-                            ArtifactDescriptorFactory.toExtension(d.getArtifact().getExtension()),
-                            ArtifactDescriptorFactory.toScope(d.getScope()), null))
-                    .collect(Collectors.toList());
+            CollectResult collectResult = repoSystem.collectDependencies(session, collectRequest);
+
+            logger.info("Dependencies for {}:{}:{} resolved:", artifact.group(),
+                    artifact.artifact(), artifact.version());
+            collectResult.getRoot().accept(new TreeDependencyVisitor(new FilteringDependencyVisitor(
+                    new LogDependencyVisitor(new LogDependencyVisitor.Log() {
+
+                        @Override
+                        public void info(String message) {
+                            logger.info(message);
+                        }
+
+                    }, new DependencyVisitor() {
+
+                        public boolean visitEnter(DependencyNode node) {
+                            return true;
+                        }
+
+                        public boolean visitLeave(DependencyNode node) {
+                            artifacts.add(node);
+                            return true;
+                        }
+                    }),
+                    new ExclusionsDependencyFilter(MavenBasedDependencyResolver.this.exclusions))));
+
+            additionalVisitors.forEach(a -> collectResult.getRoot().accept(a));
+            root = collectResult.getRoot();
+
         }
-        catch (ArtifactDescriptorException e) {
-            throw new DependencyResolverException(String.format(
-                    "Failed to collect dependencies for %s:%s:%s", artifactDescriptor.group(),
-                    artifactDescriptor.artifact(), artifactDescriptor.version()), e);
+        catch (DependencyCollectionException e) {
+            throw new com.atomist.rug.resolver.maven.DependencyCollectionException(e);
         }
+
+        List<FutureTask<ArtifactDescriptor>> resolveFutures = new ArrayList<>();
+        Map<DependencyNode, String> resolvedURIs = new ConcurrentHashMap<>();
+        
+        for (DependencyNode node : artifacts) {
+
+            FutureTask<ArtifactDescriptor> resolveFuture = new FutureTask<>(() -> {
+                Artifact dependency = node.getArtifact();
+                if (dependency.getFile() == null) {
+                    try {
+                        ArtifactResult result = repoSystem.resolveArtifact(session,
+                                new ArtifactRequest(node));
+                        dependency = result.getArtifact();
+                    }
+                    catch (ArtifactResolutionException e) {
+                        logger.warn(
+                                String.format("Failed to resolve rug archive for %s:%s:%s",
+                                        artifact.group(), artifact.artifact(), artifact.version()),
+                                e);
+                        throw new com.atomist.rug.resolver.maven.DependencyCollectionException(e);
+
+                    }
+                }
+                resolvedURIs.put(node, dependency.getFile().getAbsolutePath());
+                return new DefaultArtifactDescriptor(dependency.getGroupId(),
+                        dependency.getArtifactId(), dependency.getBaseVersion(),
+                        ArtifactDescriptorFactory.toExtension(dependency.getExtension()),
+                        ArtifactDescriptorFactory.toScope(node.getDependency().getScope()),
+                        dependency.getFile().getAbsolutePath());
+            });
+
+            resolveFutures.add(resolveFuture);
+            executorService.submit(resolveFuture);
+
+        }
+        resolveFutures.stream().forEach(rt -> {
+            try {
+                rt.get();
+            }
+            catch (InterruptedException e) {
+                throw new DependencyResolverException("Interrupt exception occurred", e);
+            }
+            catch (ExecutionException e) {
+                if (e.getCause() instanceof DependencyResolverException) {
+                    throw (DependencyResolverException) e.getCause();
+                }
+                else {
+                    throw new DependencyResolverException(e.getMessage(), e);
+                }
+            }
+        });
+        
+        return processNode(root, resolvedURIs);
+    }
+    
+    private ArtifactDescriptor processNode(DependencyNode node,
+            Map<DependencyNode, String> resolvedURIs) {
+        Artifact dependency = node.getArtifact();
+        DefaultArtifactDescriptor artifact = new DefaultArtifactDescriptor(dependency.getGroupId(),
+                dependency.getArtifactId(), dependency.getBaseVersion(),
+                ArtifactDescriptorFactory.toExtension(dependency.getExtension()),
+                ArtifactDescriptorFactory.toScope(node.getDependency().getScope()),
+                resolvedURIs.get(node));
+        node.getChildren().forEach(d -> artifact.addDependency(processNode(d, resolvedURIs)));
+        return artifact;
     }
 
     @Override
-    public List<ArtifactDescriptor> resolveTransitiveDependencies(ArtifactDescriptor artifact)
+    public List<ArtifactDescriptor> resolveDependencies(ArtifactDescriptor artifact)
             throws DependencyResolverException {
 
         if (logger.isInfoEnabled()) {
@@ -126,7 +217,8 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
                     artifact.version()));
         }
 
-        RepositorySystemSession session = newSession(repoSystem, createDependencyRoot(artifact));
+        RepositorySystemSession session = newSession(repoSystem, createDependencyRoot(artifact),
+                true);
         List<RemoteRepository> remotes = properties.repositories();
 
         List<DependencyNode> dependencies = collectDependencies(artifact, session, remotes);
@@ -145,8 +237,7 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
                     }
                     catch (ArtifactResolutionException e) {
                         logger.warn(
-                                String.format(
-                                        "Failed to resolveTransitiveDependencies rug archive for %s:%s:%s",
+                                String.format("Failed to resolve rug archive for %s:%s:%s",
                                         artifact.group(), artifact.artifact(), artifact.version()),
                                 e);
                         throw new com.atomist.rug.resolver.maven.DependencyCollectionException(e);
@@ -157,7 +248,7 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
                         dependency.getArtifactId(), dependency.getBaseVersion(),
                         ArtifactDescriptorFactory.toExtension(dependency.getExtension()),
                         ArtifactDescriptorFactory.toScope(node.getDependency().getScope()),
-                        dependency.getFile().toURI());
+                        dependency.getFile().getAbsolutePath());
             });
 
             resolveFutures.add(resolveFuture);
@@ -186,7 +277,8 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
 
     @Override
     public String resolveVersion(ArtifactDescriptor artifact) throws DependencyResolverException {
-        RepositorySystemSession session = newSession(repoSystem, createDependencyRoot(artifact));
+        RepositorySystemSession session = newSession(repoSystem, createDependencyRoot(artifact),
+                true);
         List<RemoteRepository> remotes = properties.repositories();
         return getVersion(artifact, session, remotes);
     }
@@ -300,7 +392,8 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
         return version;
     }
 
-    private RepositorySystemSession newSession(RepositorySystem system, Dependency root)
+    private RepositorySystemSession newSession(RepositorySystem system, Dependency root,
+            boolean transformGarph, String... additionalExclusions)
             throws DependencyResolverException {
         DefaultRepositorySystemSession session = MavenRepositorySystemUtils.newSession();
 
@@ -322,7 +415,10 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
             return null;
         });
 
-        List<Exclusion> exclusions = this.exclusions.stream().map(e -> {
+        List<String> combinedExclusions = new ArrayList<>(this.exclusions);
+        combinedExclusions.addAll(Arrays.asList(additionalExclusions));
+
+        List<Exclusion> exclusions = combinedExclusions.stream().map(e -> {
             String[] parts = e.split(":");
             return new Exclusion(parts[0], parts[1], "", "jar");
         }).collect(Collectors.toList());
@@ -330,6 +426,9 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
         DependencySelector depFilter = new AndDependencySelector(
                 new ScopeDependencySelector("test", "provided"), new OptionalDependencySelector(),
                 new ExclusionDependencySelector(exclusions));
+        if (!transformGarph) {
+            session.setDependencyGraphTransformer(null);
+        }
 
         session.setDependencySelector(depFilter);
         if (!properties.isCacheMetadata()) {

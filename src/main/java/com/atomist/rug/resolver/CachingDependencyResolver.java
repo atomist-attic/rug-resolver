@@ -6,13 +6,15 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.io.FileUtils;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.introspector.BeanAccess;
 
 import com.atomist.rug.resolver.manifest.Manifest;
 
@@ -33,7 +35,9 @@ import com.atomist.rug.resolver.manifest.Manifest;
 public class CachingDependencyResolver implements DependencyResolver {
 
     // Name of the resolver plan
+    private static final String LOCAL_PLAN_TREE_FILE_NAME = "_local_resolver.tree";
     private static final String LOCAL_PLAN_FILE_NAME = "_local_resolver.plan";
+    private static final String PLAN_TREE_FILE_NAME = "_resolver_.tree";
     private static final String PLAN_FILE_NAME = "_resolver.plan";
     // Default timeout 2 hours
     private static final long TIMEOUT = 1000 * 60 * 60 * 2;
@@ -53,16 +57,9 @@ public class CachingDependencyResolver implements DependencyResolver {
     }
 
     @Override
-    public List<ArtifactDescriptor> resolveDirectDependencies(ArtifactDescriptor artifact)
+    public List<ArtifactDescriptor> resolveDependencies(ArtifactDescriptor artifact)
             throws DependencyResolverException {
-        return delegate.resolveDirectDependencies(artifact);
-    }
-
-    @Override
-    public List<ArtifactDescriptor> resolveTransitiveDependencies(ArtifactDescriptor artifact)
-            throws DependencyResolverException {
-
-        File artifactRoot = createPlanFile(artifact);
+        File artifactRoot = createPlanFile(artifact, true);
         if (artifactRoot.exists() && !isOutdated(artifact, artifactRoot)) {
             Optional<List<ArtifactDescriptor>> planDependencies = readDependenciesFromPlan(
                     artifactRoot);
@@ -75,9 +72,29 @@ public class CachingDependencyResolver implements DependencyResolver {
         // we end up with stale dependencies in case of resolution errors.
         FileUtils.deleteQuietly(artifactRoot);
 
-        List<ArtifactDescriptor> dependencies = delegate.resolveTransitiveDependencies(artifact);
+        List<ArtifactDescriptor> dependencies = delegate.resolveDependencies(artifact);
         writeDependenciesToPlan(dependencies, artifactRoot);
         return dependencies;
+    }
+
+    @Override
+    public ArtifactDescriptor resolveRugs(ArtifactDescriptor artifact)
+            throws DependencyResolverException {
+        File artifactRoot = createPlanFile(artifact, false);
+        if (artifactRoot.exists() && !isOutdated(artifact, artifactRoot)) {
+            Optional<ArtifactDescriptor> planDependencies = readTreeFromPlan(artifactRoot);
+            if (planDependencies.isPresent()) {
+                return planDependencies.get();
+            }
+        }
+
+        // In any case, delete the plan file before attempting to resolve dependencies as otherwise
+        // we end up with stale dependencies in case of resolution errors.
+        FileUtils.deleteQuietly(artifactRoot);
+
+        artifact = delegate.resolveRugs(artifact);
+        writeTreeToPlan(artifact, artifactRoot);
+        return artifact;
     }
 
     @Override
@@ -100,18 +117,28 @@ public class CachingDependencyResolver implements DependencyResolver {
         return delegate.resolveVersion(artifact);
     }
 
-    private File createPlanFile(ArtifactDescriptor artifact) {
+    private File createPlanFile(ArtifactDescriptor artifact, boolean dependencies) {
         File repoRoot = new File(repoHome);
         File artifactRoot = new File(repoRoot, artifact.group().replace(".", File.separator)
                 + File.separator + artifact.artifact() + File.separator + artifact.version());
         if (!artifactRoot.exists()) {
             artifactRoot.mkdirs();
         }
-        if (artifact instanceof LocalArtifactDescriptor) {
-            return new File(artifactRoot, LOCAL_PLAN_FILE_NAME);
+        if (dependencies) {
+            if (artifact instanceof LocalArtifactDescriptor) {
+                return new File(artifactRoot, LOCAL_PLAN_FILE_NAME);
+            }
+            else {
+                return new File(artifactRoot, PLAN_FILE_NAME);
+            }
         }
         else {
-            return new File(artifactRoot, PLAN_FILE_NAME);
+            if (artifact instanceof LocalArtifactDescriptor) {
+                return new File(artifactRoot, LOCAL_PLAN_TREE_FILE_NAME);
+            }
+            else {
+                return new File(artifactRoot, PLAN_TREE_FILE_NAME);
+            }
         }
     }
 
@@ -135,7 +162,7 @@ public class CachingDependencyResolver implements DependencyResolver {
                 String[] parts = line.split("#");
                 dependencies.add(new DefaultArtifactDescriptor(parts[0], parts[1], parts[2],
                         ArtifactDescriptorFactory.toExtension(parts[3]),
-                        ArtifactDescriptor.Scope.COMPILE, URI.create(parts[4])));
+                        ArtifactDescriptor.Scope.COMPILE, parts[4]));
             }
         }
         catch (FileNotFoundException e) {
@@ -145,6 +172,21 @@ public class CachingDependencyResolver implements DependencyResolver {
             // Fine, just move on with no plan
         }
         return validateDependenciesFromPlan(Optional.ofNullable(dependencies));
+    }
+
+    private Optional<ArtifactDescriptor> readTreeFromPlan(File artifactRoot) {
+        try (InputStream is = new FileInputStream(artifactRoot)) {
+            Yaml yaml = new Yaml();
+            yaml.setBeanAccess(BeanAccess.FIELD);
+            return Optional.of(yaml.loadAs(is, DefaultArtifactDescriptor.class));
+        }
+        catch (FileNotFoundException e) {
+            // At this time we know the file exists
+        }
+        catch (IOException e) {
+            // Fine, just move on with no plan
+        }
+        return Optional.empty();
     }
 
     private Optional<String> readVersionFromVersion(File artifactRoot) {
@@ -195,6 +237,19 @@ public class CachingDependencyResolver implements DependencyResolver {
         }
     }
 
+    private void writeTreeToPlan(ArtifactDescriptor artifact, File artifactRoot) {
+        try (FileWriter writer = new FileWriter(artifactRoot)) {
+            Yaml yaml = new Yaml();
+            yaml.setBeanAccess(BeanAccess.FIELD);
+            yaml.dump(artifact, writer);
+            writer.flush();
+        }
+        catch (IOException e) {
+            // Something went wrong, just delete the plan file
+            artifactRoot.delete();
+        }
+    }
+
     private void writeVersionToVersion(String version, File artifactRoot) {
         try (FileWriter writer = new FileWriter(artifactRoot)) {
             try {
@@ -218,5 +273,4 @@ public class CachingDependencyResolver implements DependencyResolver {
         }
         return System.currentTimeMillis() - file.lastModified() > TIMEOUT;
     }
-
 }

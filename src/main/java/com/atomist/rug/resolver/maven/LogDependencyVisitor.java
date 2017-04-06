@@ -24,6 +24,7 @@ public class LogDependencyVisitor implements DependencyVisitor {
     protected String treeNode = "├── ";
 
     protected String treeNodeWithChildren = "├─┬ ";
+    protected String dot = "·";
 
     public LogDependencyVisitor(Log out) {
         this.out = out;
@@ -35,13 +36,14 @@ public class LogDependencyVisitor implements DependencyVisitor {
     }
 
     public LogDependencyVisitor(Log out, String treeNode, String lastTreeNode, String treeConnector,
-            String treeNodeWithChildren, String lastTreeNodeWithChildren) {
+            String treeNodeWithChildren, String lastTreeNodeWithChildren, String dot) {
         this.out = out;
         this.lastTreeNode = lastTreeNode;
         this.treeConnector = treeConnector;
         this.treeNode = treeNode;
         this.treeNodeWithChildren = treeNodeWithChildren;
         this.lastTreeNodeWithChildre = lastTreeNodeWithChildren;
+        this.dot  = dot;
     }
 
     public boolean visitEnter(DependencyNode node) {
@@ -72,14 +74,18 @@ public class LogDependencyVisitor implements DependencyVisitor {
         StringBuilder buffer = new StringBuilder(128);
         Artifact a = node.getArtifact();
         Dependency d = node.getDependency();
-        buffer.append(a);
-        if (d != null && d.getScope().length() > 0) {
-            buffer.append(" [").append(d.getScope());
-            if (d.isOptional()) {
-                buffer.append(", optional");
-            }
-            buffer.append("]");
+        buffer.append(a.getGroupId()).append(":").append(a.getArtifactId());
+        buffer.append(" (").append(a.getVersion()).append(dot).append(a.getExtension());
+        if (a.getClassifier().length() > 0) {
+            buffer.append(dot).append(a.getClassifier());
         }
+        if (d != null && d.getScope().length() > 0) {
+            buffer.append(dot).append(d.getScope());
+            if (d.isOptional()) {
+                buffer.append(dot).append("optional");
+            }
+        }
+        buffer.append(")");
         {
             String premanaged = DependencyManagerUtils.getPremanagedVersion(node);
             if (premanaged != null && !premanaged.equals(a.getBaseVersion())) {

@@ -6,6 +6,8 @@ import com.atomist.project.generate.ProjectGenerator
 import com.atomist.project.ProjectOperation
 import com.atomist.source.{ ArtifactSource, StringFileArtifact }
 import org.springframework.stereotype.Component
+import com.atomist.project.archive.RugResolver
+import java.util.Optional
 
 @Component
 class ProvenanceInfoWriter {
@@ -13,10 +15,10 @@ class ProvenanceInfoWriter {
   val ProvenanceFile: String = ".atomist.yml"
   val SecretKeys: Seq[String] = Seq("password", "key", "secret", "token", "user")
 
-  def write(projectSource: ArtifactSource, po: ProjectOperation, poa: ParameterValues, client: String): ArtifactSource = {
-
-    val content = write(po, poa, client)
+  def write(projectSource: ArtifactSource, po: ProjectOperation, poa: ParameterValues, client: String, resolver: RugResolver): ArtifactSource = {
     
+    val content = write(po, poa, client, resolver)
+
     // Make sure to delete the .atomist.yml in case of a generator before creating the new file
     // because we are not interested in the history of the rug archive to show up in the generated project
     val source = po match {
@@ -24,7 +26,7 @@ class ProvenanceInfoWriter {
         projectSource.delete(ProvenanceFile)
       case _ => projectSource
     }
-    
+
     val provenanceFile = source.findFile(ProvenanceFile)
     val updatedContent = provenanceFile match {
       case Some(existingContent) => existingContent.content + content
@@ -35,7 +37,8 @@ class ProvenanceInfoWriter {
   }
 
   // how do we add that a Handler initiated the editor/generator?
-  def write(po: ProjectOperation, poa: ParameterValues, client: String): String = {
+  def write(po: ProjectOperation, poa: ParameterValues, client: String, resolver: RugResolver): String = {
+    val gitInfo = ProvenanceInfoArtifactSourceReader.read(resolver.resolvedDependencies.source)
     val content = new StringBuilder()
 
     content.append("---\n");
@@ -50,19 +53,28 @@ class ProvenanceInfoWriter {
       case _ =>
     }
 
-    po match {
-      case p: ProvenanceInfo =>
-        content.append(s"""  name: "${p.name}"\n""")
-        content.append(s"""  group: "${extract(p.group)}"\n""")
-        content.append(s"""  artifact: "${extract(p.artifact)}"\n""")
-        content.append(s"""  version: "${extract(p.version)}"\n""")
+    content.append(s"""  name: "${po.name}"\n""")
 
-        content.append(s"""  origin:\n""")
-        content.append(s"""    repo: "${extract(p.repo())}"\n""")
-        content.append(s"""    branch: "${extract(p.branch())}"\n""")
-        content.append(s"""    sha: "${extract(p.sha())}"\n""")
+    resolver.findResolvedDependency(po) match {
+      case Some(rd) =>
+        rd.address match {
+          case Some(a) =>
+            content.append(s"""  group: "${extract(a.group)}"\n""")
+            content.append(s"""  artifact: "${extract(a.artifact)}"\n""")
+            content.append(s"""  version: "${extract(a.version)}"\n""")
+          case _ =>
+        }
       case _ =>
     }
+    
+    if (gitInfo.isPresent()) {
+      val p = gitInfo.get;
+      content.append(s"""  origin:\n""")
+      content.append(s"""    repo: "${extract(p.repo())}"\n""")
+      content.append(s"""    branch: "${extract(p.branch())}"\n""")
+      content.append(s"""    sha: "${extract(p.sha())}"\n""")  
+    }
+    
 
     def sanitizeValue(key: String, value: Any): Any = {
       value match {
