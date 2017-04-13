@@ -33,6 +33,19 @@ class GpgSignatureVerifierTest extends FunSpec with DiagrammedAssertions with On
     ))
   }
 
+  it("should work on stuff downloaded by the cli") {
+    assert(verifier.verify(
+      new File("src/test/resources/rug-0.25.2.pom"),//downloaded by cli
+      new File("src/test/resources/rug-0.25.2.pom.asc")//downloaded manually
+    ))
+  }
+  it("should work on stuff the same pom downloaded manually") {
+    assert(verifier.verify(
+      new File("src/test/resources/rug-0.25.2_direct.pom"),//downloaded manually
+      new File("src/test/resources/rug-0.25.2.pom.asc")//downloaded manually
+    ))
+  }
+
   it("should fail if the jar and signature is fine, but the cert is not the signing one") {
     val verifier = new GpgSignatureVerifier(Thread.currentThread().getContextClassLoader.getResourceAsStream("other_pub.gpg"))
     assert(!verifier.verify(
