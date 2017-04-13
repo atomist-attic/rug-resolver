@@ -26,6 +26,13 @@ class GpgSignatureVerifierTest extends FunSpec with DiagrammedAssertions with On
       new File("src/test/resources/rug-functions-github-0.14.2-SNAPSHOT.jar.asc")
     ))
   }
+  it("should work on poms too") {
+    assert(verifier.verify(
+      new File("src/test/resources/rug-functions-github-0.14.2-20170413150702.pom"),
+      new File("src/test/resources/rug-functions-github-0.14.2-20170413150702.pom.asc")
+    ))
+  }
+
   it("should fail if the jar and signature is fine, but the cert is not the signing one") {
     val verifier = new GpgSignatureVerifier(Thread.currentThread().getContextClassLoader.getResourceAsStream("other_pub.gpg"))
     assert(!verifier.verify(
