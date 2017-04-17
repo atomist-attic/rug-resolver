@@ -81,7 +81,7 @@ public class ArtifactDescriptorFactory {
     }
 
     public static Extension toExtension(String extension) {
-        return Extension.valueOf(extension.toUpperCase());
+        return Extension.valueOf(extension.toUpperCase().replace(".", "_"));
     }
 
     public static Scope toScope(String scope) {

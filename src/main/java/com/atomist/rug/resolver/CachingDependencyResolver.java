@@ -30,7 +30,6 @@ import com.atomist.rug.resolver.manifest.Manifest;
  * In case a <code>package.json</code> or <code>manifest.yml</code> is changed, the cached
  * resolution
  * result will get discarded and a new resolution is triggered.
- * @author cdupuis
  */
 public class CachingDependencyResolver implements DependencyResolver {
 
@@ -57,7 +56,7 @@ public class CachingDependencyResolver implements DependencyResolver {
     }
 
     @Override
-    public List<ArtifactDescriptor> resolveDependencies(ArtifactDescriptor artifact)
+    public List<ArtifactDescriptor> resolveDependencies(ArtifactDescriptor artifact, DependencyVerifier... verifiers)
             throws DependencyResolverException {
         File artifactRoot = createPlanFile(artifact, true);
         if (artifactRoot.exists() && !isOutdated(artifact, artifactRoot)) {
@@ -72,7 +71,7 @@ public class CachingDependencyResolver implements DependencyResolver {
         // we end up with stale dependencies in case of resolution errors.
         FileUtils.deleteQuietly(artifactRoot);
 
-        List<ArtifactDescriptor> dependencies = delegate.resolveDependencies(artifact);
+        List<ArtifactDescriptor> dependencies = delegate.resolveDependencies(artifact, verifiers);
         writeDependenciesToPlan(dependencies, artifactRoot);
         return dependencies;
     }

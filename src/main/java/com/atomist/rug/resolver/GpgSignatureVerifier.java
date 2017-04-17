@@ -21,14 +21,19 @@ import java.security.Security;
 /**
  * Verify gpg signature of files
  */
-public class GpgSignatureVerifier {
+public class GpgSignatureVerifier implements DependencyVerifier {
 
     private PGPPublicKeyRingCollection pgpPubRingCollection;
+    
+    public GpgSignatureVerifier() throws IOException, PGPException {
+        this(Thread.currentThread().getContextClassLoader().getResourceAsStream("atomist_pub.gpg"));
+    }
 
     public GpgSignatureVerifier(InputStream publicKey) throws IOException, PGPException {
         Provider provider = new BouncyCastleProvider();
         Security.addProvider(provider);
-        pgpPubRingCollection = new PGPPublicKeyRingCollection(PGPUtil.getDecoderStream(publicKey), new JcaKeyFingerprintCalculator());
+        pgpPubRingCollection = new PGPPublicKeyRingCollection(PGPUtil.getDecoderStream(publicKey),
+                new JcaKeyFingerprintCalculator());
     }
 
     public boolean verify(File data, File signature) throws Exception {
@@ -57,9 +62,37 @@ public class GpgSignatureVerifier {
             }
             signedData.close();
             return sig.verify();
-        } catch (Exception ex) {
-            //can we put a logger here please?
+        }
+        catch (Exception ex) {
+            // can we put a logger here please?
             return false;
         }
     }
+
+    @Override
+    public boolean verify(ArtifactDescriptor artifact, ArtifactDescriptor signature,
+            ArtifactDescriptor pom, ArtifactDescriptor pomSignature) {
+        try {
+            return verify(artifactToFile(artifact), artifactToFile(signature))
+                    && verify(artifactToFile(pom), artifactToFile(pomSignature));
+        }
+        catch (Exception e) {
+            return false;
+        }
+    }
+    
+    @Override
+    public void prepare(String group, String artifat, String version) {
+        // no op
+    }
+
+    @Override
+    public void finish(boolean result) {
+        // no op
+    }
+
+    private File artifactToFile(ArtifactDescriptor artifact) {
+        return new File(artifact.uri());
+    }
+    
 }

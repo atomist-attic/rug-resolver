@@ -23,7 +23,7 @@ public interface ArtifactDescriptor {
     String version();
 
     public enum Extension {
-        JAR, JSON, ZIP
+        JAR, JSON, ZIP, JAR_ASC, POM, POM_ASC
     }
 
     public enum Scope {

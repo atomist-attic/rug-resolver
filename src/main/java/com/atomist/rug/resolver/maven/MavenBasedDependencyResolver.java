@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -50,10 +51,13 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import com.atomist.rug.resolver.ArtifactDescriptor;
+import com.atomist.rug.resolver.ArtifactDescriptor.Scope;
 import com.atomist.rug.resolver.ArtifactDescriptorFactory;
 import com.atomist.rug.resolver.DefaultArtifactDescriptor;
 import com.atomist.rug.resolver.DependencyResolver;
 import com.atomist.rug.resolver.DependencyResolverException;
+import com.atomist.rug.resolver.DependencyVerificationFailedException;
+import com.atomist.rug.resolver.DependencyVerifier;
 
 import io.takari.aether.localrepo.TakariLocalRepositoryManagerFactory;
 
@@ -143,7 +147,7 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
 
         List<FutureTask<ArtifactDescriptor>> resolveFutures = new ArrayList<>();
         Map<DependencyNode, String> resolvedURIs = new ConcurrentHashMap<>();
-        
+
         for (DependencyNode node : artifacts) {
 
             FutureTask<ArtifactDescriptor> resolveFuture = new FutureTask<>(() -> {
@@ -191,10 +195,10 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
                 }
             }
         });
-        
+
         return processNode(root, resolvedURIs);
     }
-    
+
     private ArtifactDescriptor processNode(DependencyNode node,
             Map<DependencyNode, String> resolvedURIs) {
         Artifact dependency = node.getArtifact();
@@ -208,8 +212,8 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
     }
 
     @Override
-    public List<ArtifactDescriptor> resolveDependencies(ArtifactDescriptor artifact)
-            throws DependencyResolverException {
+    public List<ArtifactDescriptor> resolveDependencies(ArtifactDescriptor artifact,
+            DependencyVerifier... verifiers) throws DependencyResolverException {
 
         if (logger.isInfoEnabled()) {
             logger.info(String.format("Resolving dependencies for %s:%s:%s:%s", artifact.group(),
@@ -221,7 +225,8 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
                 true);
         List<RemoteRepository> remotes = properties.repositories();
 
-        List<DependencyNode> dependencies = collectDependencies(artifact, session, remotes);
+        List<DependencyNode> dependencies = collectDependencies(artifact, session, remotes,
+                verifiers);
 
         List<FutureTask<ArtifactDescriptor>> resolveFutures = new ArrayList<>();
 
@@ -296,8 +301,8 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
     }
 
     private List<DependencyNode> collectDependencies(ArtifactDescriptor artifact,
-            RepositorySystemSession session, List<RemoteRepository> remotes)
-            throws DependencyResolverException {
+            RepositorySystemSession session, List<RemoteRepository> remotes,
+            DependencyVerifier... verifiers) throws DependencyResolverException {
 
         CollectRequest collectRequest = new CollectRequest();
         collectRequest.setRoot(createDependencyRoot(artifact));
@@ -322,12 +327,28 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
 
                     }, new DependencyVisitor() {
 
+                        private Stack<DependencyNode> nodes = new Stack<>();
+
                         public boolean visitEnter(DependencyNode node) {
+                            if (shouldVerify(node, (!nodes.isEmpty() ? nodes.peek() : null))) {
+                                if (!verify(node, session, repoSystem, verifiers)) {
+                                    throw new DependencyVerificationFailedException(
+                                            String.format("Verification of %s:%s (%s) failed",
+                                                    node.getArtifact().getGroupId(),
+                                                    node.getArtifact().getArtifactId(),
+                                                    node.getArtifact().getVersion()),
+                                            node.getArtifact().getGroupId(),
+                                            node.getArtifact().getArtifactId(),
+                                            node.getArtifact().getVersion());
+                                }
+                            }
+                            nodes.push(node);
                             return true;
                         }
 
                         public boolean visitLeave(DependencyNode node) {
                             artifacts.add(node);
+                            nodes.pop();
                             return true;
                         }
                     }),
@@ -341,6 +362,109 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
         }
 
         return artifacts;
+    }
+
+    protected boolean shouldVerify(DependencyNode node, DependencyNode parent) {
+        if (parent == null) {
+            return false;
+        }
+        if (node.getArtifact().getExtension().equals("jar")
+                && parent.getArtifact().getExtension().equals("zip")) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    private boolean verify(DependencyNode node, RepositorySystemSession session,
+            RepositorySystem system, DependencyVerifier... verifiers) {
+        List<DependencyVerifier> vs = Arrays.asList(verifiers);
+        boolean result = true;
+        if (vs.size() > 0) {
+            try {
+                Artifact na = node.getArtifact();
+                vs.forEach(v -> v.prepare(na.getGroupId(), na.getArtifactId(), na.getVersion()));
+
+                Artifact signatureArtifact = new DefaultArtifact(node.getArtifact().getGroupId(),
+                        node.getArtifact().getArtifactId(), node.getArtifact().getClassifier(),
+                        node.getArtifact().getExtension() + ".asc",
+                        node.getArtifact().getVersion());
+                Artifact pomArtifact = new DefaultArtifact(node.getArtifact().getGroupId(),
+                        node.getArtifact().getArtifactId(), node.getArtifact().getClassifier(),
+                        "pom", node.getArtifact().getVersion());
+                Artifact pomSignatureArtifact = new DefaultArtifact(node.getArtifact().getGroupId(),
+                        node.getArtifact().getArtifactId(), node.getArtifact().getClassifier(),
+                        "pom.asc", node.getArtifact().getVersion());
+
+                List<ArtifactResult> resolveResult = system.resolveArtifacts(session, Arrays.asList(
+                        new ArtifactRequest(node),
+                        new ArtifactRequest(signatureArtifact, node.getRepositories(), null),
+                        new ArtifactRequest(pomArtifact, node.getRepositories(), null),
+                        new ArtifactRequest(pomSignatureArtifact, node.getRepositories(), null)));
+
+                Optional<DefaultArtifactDescriptor> jar = resolveResult.stream()
+                        .filter(a -> a.getArtifact().getExtension().equals("jar"))
+                        .map(a -> new DefaultArtifactDescriptor(a.getArtifact().getGroupId(),
+                                a.getArtifact().getArtifactId(), a.getArtifact().getVersion(),
+                                ArtifactDescriptorFactory
+                                        .toExtension(a.getArtifact().getExtension()),
+                                Scope.COMPILE, a.getArtifact().getClassifier(),
+                                a.getArtifact().getFile().getAbsolutePath()))
+                        .findFirst();
+                Optional<DefaultArtifactDescriptor> asc = resolveResult.stream()
+                        .filter(a -> a.getArtifact().getExtension().equals("jar.asc"))
+                        .map(a -> new DefaultArtifactDescriptor(a.getArtifact().getGroupId(),
+                                a.getArtifact().getArtifactId(), a.getArtifact().getVersion(),
+                                ArtifactDescriptorFactory
+                                        .toExtension(a.getArtifact().getExtension()),
+                                Scope.COMPILE, a.getArtifact().getClassifier(),
+                                a.getArtifact().getFile().getAbsolutePath()))
+                        .findFirst();
+
+                Optional<DefaultArtifactDescriptor> pom = resolveResult.stream()
+                        .filter(a -> a.getArtifact().getExtension().equals("pom"))
+                        .map(a -> new DefaultArtifactDescriptor(a.getArtifact().getGroupId(),
+                                a.getArtifact().getArtifactId(), a.getArtifact().getVersion(),
+                                ArtifactDescriptorFactory
+                                        .toExtension(a.getArtifact().getExtension()),
+                                Scope.COMPILE, a.getArtifact().getClassifier(),
+                                a.getArtifact().getFile().getAbsolutePath()))
+                        .findFirst();
+                Optional<DefaultArtifactDescriptor> pomAsc = resolveResult.stream()
+                        .filter(a -> a.getArtifact().getExtension().equals("pom.asc"))
+                        .map(a -> new DefaultArtifactDescriptor(a.getArtifact().getGroupId(),
+                                a.getArtifact().getArtifactId(), a.getArtifact().getVersion(),
+                                ArtifactDescriptorFactory
+                                        .toExtension(a.getArtifact().getExtension()),
+                                Scope.COMPILE, a.getArtifact().getClassifier(),
+                                a.getArtifact().getFile().getAbsolutePath()))
+                        .findFirst();
+
+                if (jar.isPresent() && asc.isPresent() && pom.isPresent() && pomAsc.isPresent()) {
+                    result = !vs.stream()
+                            .filter(v -> !v.verify(jar.get(), asc.get(), pom.get(), pomAsc.get()))
+                            .findFirst().isPresent();
+                }
+                else {
+                    result = false;
+                }
+            }
+            catch (Exception e) {
+                result = false;
+                throw new DependencyVerificationFailedException(
+                        String.format("Verification of %s:%s (%s) failed",
+                                node.getArtifact().getGroupId(), node.getArtifact().getArtifactId(),
+                                node.getArtifact().getVersion()),
+                        node.getArtifact().getGroupId(), node.getArtifact().getArtifactId(),
+                        node.getArtifact().getVersion(), e);
+            }
+            finally {
+                boolean r = result;
+                vs.forEach(v -> v.finish(r));
+            }
+        }
+        return result;
     }
 
     private String getLatestVersion(String groupId, String artifactId, String range,
