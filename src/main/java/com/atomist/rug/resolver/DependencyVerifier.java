@@ -5,11 +5,7 @@ package com.atomist.rug.resolver;
  */
 public interface DependencyVerifier {
     
-    void prepare(String group, String artifact, String version);
-
     boolean verify(ArtifactDescriptor artifact, ArtifactDescriptor signature,
             ArtifactDescriptor pom, ArtifactDescriptor pomSignature);
-    
-    void finish(boolean result);
 
 }

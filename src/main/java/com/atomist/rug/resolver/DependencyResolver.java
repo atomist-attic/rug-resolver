@@ -10,5 +10,9 @@ public interface DependencyResolver {
     ArtifactDescriptor resolveRugs(ArtifactDescriptor artifact) throws DependencyResolverException;
 
     String resolveVersion(ArtifactDescriptor artifact) throws DependencyResolverException;
+    
+    default void addDependencyVerificationListener(DependencyVerificationListener listener) {
+        // no op
+    }
 
 }

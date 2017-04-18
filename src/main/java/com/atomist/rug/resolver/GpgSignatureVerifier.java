@@ -81,16 +81,6 @@ public class GpgSignatureVerifier implements DependencyVerifier {
         }
     }
     
-    @Override
-    public void prepare(String group, String artifat, String version) {
-        // no op
-    }
-
-    @Override
-    public void finish(boolean result) {
-        // no op
-    }
-
     private File artifactToFile(ArtifactDescriptor artifact) {
         return new File(artifact.uri());
     }
