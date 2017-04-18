@@ -489,8 +489,7 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
         boolean result = true;
         if (vs.size() > 0) {
             try {
-                vs.forEach(v -> raiseEvent(
-                        l -> l.starting(na.getGroupId(), na.getArtifactId(), na.getVersion())));
+                raiseEvent(l -> l.starting(na.getGroupId(), na.getArtifactId(), na.getVersion()));
 
                 Artifact signatureArtifact = new DefaultArtifact(node.getArtifact().getGroupId(),
                         node.getArtifact().getArtifactId(), node.getArtifact().getClassifier(),
@@ -509,44 +508,11 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
                         new ArtifactRequest(pomArtifact, node.getRepositories(), null),
                         new ArtifactRequest(pomSignatureArtifact, node.getRepositories(), null)));
 
-                Optional<DefaultArtifactDescriptor> jar = resolveResult.stream()
-                        .filter(a -> a.getArtifact().getExtension().equals("jar"))
-                        .map(a -> new DefaultArtifactDescriptor(a.getArtifact().getGroupId(),
-                                a.getArtifact().getArtifactId(), a.getArtifact().getVersion(),
-                                ArtifactDescriptorFactory
-                                        .toExtension(a.getArtifact().getExtension()),
-                                Scope.COMPILE, a.getArtifact().getClassifier(),
-                                a.getArtifact().getFile().getAbsolutePath()))
-                        .findFirst();
-                Optional<DefaultArtifactDescriptor> asc = resolveResult.stream()
-                        .filter(a -> a.getArtifact().getExtension().equals("jar.asc"))
-                        .map(a -> new DefaultArtifactDescriptor(a.getArtifact().getGroupId(),
-                                a.getArtifact().getArtifactId(), a.getArtifact().getVersion(),
-                                ArtifactDescriptorFactory
-                                        .toExtension(a.getArtifact().getExtension()),
-                                Scope.COMPILE, a.getArtifact().getClassifier(),
-                                a.getArtifact().getFile().getAbsolutePath()))
-                        .findFirst();
-
-                Optional<DefaultArtifactDescriptor> pom = resolveResult.stream()
-                        .filter(a -> a.getArtifact().getExtension().equals("pom"))
-                        .map(a -> new DefaultArtifactDescriptor(a.getArtifact().getGroupId(),
-                                a.getArtifact().getArtifactId(), a.getArtifact().getVersion(),
-                                ArtifactDescriptorFactory
-                                        .toExtension(a.getArtifact().getExtension()),
-                                Scope.COMPILE, a.getArtifact().getClassifier(),
-                                a.getArtifact().getFile().getAbsolutePath()))
-                        .findFirst();
-                Optional<DefaultArtifactDescriptor> pomAsc = resolveResult.stream()
-                        .filter(a -> a.getArtifact().getExtension().equals("pom.asc"))
-                        .map(a -> new DefaultArtifactDescriptor(a.getArtifact().getGroupId(),
-                                a.getArtifact().getArtifactId(), a.getArtifact().getVersion(),
-                                ArtifactDescriptorFactory
-                                        .toExtension(a.getArtifact().getExtension()),
-                                Scope.COMPILE, a.getArtifact().getClassifier(),
-                                a.getArtifact().getFile().getAbsolutePath()))
-                        .findFirst();
-
+                Optional<ArtifactDescriptor> jar = findArtifact("jar", resolveResult);
+                Optional<ArtifactDescriptor> asc = findArtifact("jar.asc", resolveResult);
+                Optional<ArtifactDescriptor> pom = findArtifact("pom", resolveResult);
+                Optional<ArtifactDescriptor> pomAsc = findArtifact("pom.asc", resolveResult);
+                
                 if (jar.isPresent() && asc.isPresent() && pom.isPresent() && pomAsc.isPresent()) {
                     result = !vs.stream()
                             .filter(v -> !v.verify(jar.get(), asc.get(), pom.get(), pomAsc.get()))
@@ -555,6 +521,7 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
                 else {
                     result = false;
                 }
+                
                 if (result) {
                     raiseEvent(
                             l -> l.succeeded(na.getGroupId(), na.getArtifactId(), na.getVersion()));
@@ -576,6 +543,18 @@ public class MavenBasedDependencyResolver implements DependencyResolver {
             }
         }
         return result;
+    }
+
+    private Optional<ArtifactDescriptor> findArtifact(String extension, List<ArtifactResult> resolveResult) {
+        return (Optional<ArtifactDescriptor>) resolveResult.stream()
+                .filter(a -> a.getArtifact().getExtension().equals(extension))
+                .map(a -> (ArtifactDescriptor) new DefaultArtifactDescriptor(
+                        a.getArtifact().getGroupId(), a.getArtifact().getArtifactId(),
+                        a.getArtifact().getVersion(),
+                        ArtifactDescriptorFactory.toExtension(a.getArtifact().getExtension()),
+                        Scope.COMPILE, a.getArtifact().getClassifier(),
+                        a.getArtifact().getFile().getAbsolutePath()))
+                .findFirst();
     }
 
     protected Dependency createDependencyRoot(ArtifactDescriptor artifactDescriptor) {
