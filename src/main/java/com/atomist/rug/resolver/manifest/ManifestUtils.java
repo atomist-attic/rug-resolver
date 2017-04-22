@@ -9,7 +9,6 @@ import org.springframework.util.PathMatcher;
 
 import com.atomist.project.edit.ProjectEditor;
 import com.atomist.project.generate.ProjectGenerator;
-import com.atomist.project.review.ProjectReviewer;
 import com.atomist.rug.runtime.CommandHandler;
 import com.atomist.rug.runtime.EventHandler;
 import com.atomist.rug.runtime.ResponseHandler;
@@ -30,9 +29,6 @@ public abstract class ManifestUtils {
         }
         else if (rug instanceof ProjectGenerator) {
             patterns = ex.generators();
-        }
-        else if (rug instanceof ProjectReviewer) {
-            patterns = ex.reviewers();
         }
         else if (rug instanceof CommandHandler) {
             patterns = ex.commandHandlers();

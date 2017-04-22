@@ -155,9 +155,6 @@ public abstract class MetadataWriter {
         private List<ResponseHandler> responseHandlers;
 
         @JsonProperty
-        private List<ProjectOperation> reviewers;
-
-        @JsonProperty
         private String version;
 
         public ArchiveMetadata(Manifest manifest, Rugs rugs, ArtifactDescriptor artifact,
@@ -168,9 +165,6 @@ public abstract class MetadataWriter {
                     .asJavaCollection().stream().filter(p -> !ManifestUtils.excluded(p, manifest))
                     .map(ProjectOperation::new).collect(Collectors.toList());
             this.generators = JavaConverters.asJavaCollectionConverter(rugs.generators())
-                    .asJavaCollection().stream().filter(p -> !ManifestUtils.excluded(p, manifest))
-                    .map(ProjectOperation::new).collect(Collectors.toList());
-            this.reviewers = JavaConverters.asJavaCollectionConverter(rugs.reviewers())
                     .asJavaCollection().stream().filter(p -> !ManifestUtils.excluded(p, manifest))
                     .map(ProjectOperation::new).collect(Collectors.toList());
             this.eventHandlers = JavaConverters.asJavaCollectionConverter(rugs.eventHandlers())
