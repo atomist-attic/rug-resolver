@@ -234,6 +234,9 @@ public abstract class MetadataWriter {
 
         @JsonProperty("root_node")
         private String rootNode;
+        
+        @JsonProperty
+        private Collection<String> secrets;
 
         @JsonProperty
         private Collection<Tag> tags;
@@ -243,6 +246,8 @@ public abstract class MetadataWriter {
             description = handler.description();
             rootNode = handler.rootNodeName();
             tags = JavaConverters.asJavaCollectionConverter(handler.tags()).asJavaCollection();
+            secrets = JavaConverters.asJavaCollectionConverter(handler.secrets()).asJavaCollection()
+                    .stream().map(s -> s.path()).collect(Collectors.toList());
         }
     }
 
