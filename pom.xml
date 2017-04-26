@@ -58,6 +58,16 @@
 			<groupId>com.atomist</groupId>
 			<artifactId>artifact-source</artifactId>
 			<version>1.0.0-m.1</version>
+			<exclusions>
+				<exclusion>
+					<groupId>ch.qos.logback</groupId>
+					<artifactId>logback-classic</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>ch.qos.logback</groupId>
+					<artifactId>logback-access</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
@@ -83,21 +93,6 @@
 				<exclusion>
 					<groupId>commons-logging</groupId>
 					<artifactId>commons-logging</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>com.atomist</groupId>
-			<artifactId>artifact-source</artifactId>
-			<version>0.18.1</version>
-			<exclusions>
-				<exclusion>
-					<groupId>ch.qos.logback</groupId>
-					<artifactId>logback-classic</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>ch.qos.logback</groupId>
-					<artifactId>logback-access</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
