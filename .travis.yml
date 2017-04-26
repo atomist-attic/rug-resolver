@@ -17,6 +17,8 @@ notifications:
     on_success: always
     on_failure: always
     on_start: always
+    on_cancel: always
+    on_error: always
     urls:
     - https://webhook.atomist.com/travis
 cache:
@@ -28,4 +30,4 @@ deploy:
     secure: YU0rUfX3QzCPPBmaEuYpb6HLjj5hErbLNW0zb5SeOHZLrGFRzuuADS3XULe1QvNtpiqE4kWu5II3XzxBs4Or/5p3OvrnaRa3pN7yjho4YOpEFF/7fLGt6SkZadwRq8b+BfM1/LoqgHumVWFDx+DHe0urUboz0SRrMMAtoFJpC4YV+kD08S2+67Xz3erekC1IEGaSNot99/xIAoePBeiaqAcuUuXcVjnnDhF8380saxMimuobMbBhkhVh8jn+EwkVMKvxpuzY0xH/uOYhA1g0BUMDXZI5an5AkoLnQwbc4ZWhDjlZnvIjK++4agU3ebPLOB8wff5HIFtY52QUjwuRJNK+JHAp5mso7Nl0pGnOm0zuEEd2ZiFa3nCtLEF27A4tN5si46/tsozR+IsFI5dBUMCLCvYj4TZpjgAcpnH/GySZarm1W8CiSQZYcPchUUggwHuEdXgydE5VXMWeF6G0QQyIX/dfvZGFGAcIw1qHAQLMUz+pgnCBCGbjxb3zS83HUBOb4T1PjGQrOl0zgAQJNt9LvaaWNI5HLqRvhFprnnjr+rRihY2Y0WyJjWtt7lUmB7LaRukpFkYNsh5oHrq0QwxvX85YXlMeX6FMfSLTqBawg4hWYb3/fzdTzumApAtEiR+yq53hsoQWVr2GtdPBuUxUv4enkB/bS+XmkiyAy/s=
   on:
     tags: true
-    condition: "$TRAVIS_TAG =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(m|rc)\.[0-9]+)?$
+    condition: $TRAVIS_TAG =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(m|rc)\.[0-9]+)?$
