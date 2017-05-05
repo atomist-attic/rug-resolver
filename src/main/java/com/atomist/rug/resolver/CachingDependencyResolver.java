@@ -36,7 +36,7 @@ public class CachingDependencyResolver implements DependencyResolver {
     // Name of the resolver plan
     private static final String LOCAL_PLAN_TREE_FILE_NAME = "_local_resolver.tree";
     private static final String LOCAL_PLAN_FILE_NAME = "_local_resolver.plan";
-    private static final String PLAN_TREE_FILE_NAME = "_resolver_.tree";
+    private static final String PLAN_TREE_FILE_NAME = "_resolver.tree";
     private static final String PLAN_FILE_NAME = "_resolver.plan";
     // Default timeout 2 hours
     private static final long TIMEOUT = 1000 * 60 * 60 * 2;
