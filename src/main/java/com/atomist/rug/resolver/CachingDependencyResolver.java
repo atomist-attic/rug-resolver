@@ -56,8 +56,8 @@ public class CachingDependencyResolver implements DependencyResolver {
     }
 
     @Override
-    public List<ArtifactDescriptor> resolveDependencies(ArtifactDescriptor artifact, DependencyVerifier... verifiers)
-            throws DependencyResolverException {
+    public List<ArtifactDescriptor> resolveDependencies(ArtifactDescriptor artifact,
+            DependencyVerifier... verifiers) throws DependencyResolverException {
         File artifactRoot = createPlanFile(artifact, true);
         if (artifactRoot.exists() && !isOutdated(artifact, artifactRoot)) {
             Optional<List<ArtifactDescriptor>> planDependencies = readDependenciesFromPlan(
@@ -266,9 +266,12 @@ public class CachingDependencyResolver implements DependencyResolver {
 
     protected boolean isOutdated(ArtifactDescriptor artifact, File file) {
         if (artifact instanceof LocalArtifactDescriptor) {
-            File manifest = new File(new File(artifact.uri()),
+            File manifestYml = new File(new File(artifact.uri()),
                     Manifest.ATOMIST_ROOT + File.separator + Manifest.FILE_NAME);
-            return manifest.lastModified() > file.lastModified();
+            File packageJson = new File(new File(artifact.uri()),
+                    Manifest.ATOMIST_ROOT + File.separator + "package.json");
+            return (manifestYml.exists() && manifestYml.lastModified() > file.lastModified())
+                    || (packageJson.exists() && packageJson.lastModified() > file.lastModified());
         }
         return System.currentTimeMillis() - file.lastModified() > TIMEOUT;
     }

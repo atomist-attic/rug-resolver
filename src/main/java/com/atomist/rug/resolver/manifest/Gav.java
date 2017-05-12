@@ -1,5 +1,7 @@
 package com.atomist.rug.resolver.manifest;
 
+import java.util.Map;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -7,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @JsonInclude(Include.NON_EMPTY)
 public class Gav {
 
-    public static Gav formString(String coord) {
+    public static Gav fromString(String coord) {
         if (coord == null) {
             throw new IllegalArgumentException("gav should not be null");
         }
@@ -17,6 +19,19 @@ public class Gav {
         }
         return new Gav(parts[0], parts[1], parts[2]);
     }
+
+    public static Gav fromEntry(Map.Entry<String, String> entry) {
+        String group = "atomist";
+        String artifact = entry.getKey();
+        int ix = artifact.indexOf(':');
+        if (ix > 0) {
+            group = artifact.substring(0, ix);
+            artifact = artifact.substring(ix + 1);
+        }
+        String version = entry.getValue();
+        return new Gav(group, artifact, ManifestUtils.parseVersion(version));
+    }
+
     private String artifact;
     private String group;
 
@@ -44,15 +59,21 @@ public class Gav {
     }
 
     public void setArtifact(String artifact) {
-        this.artifact = artifact;
+        if (artifact != null) {
+            this.artifact = artifact;
+        }
     }
 
     public void setGroup(String group) {
-        this.group = group;
+        if (group != null) {
+            this.group = group;
+        }
     }
 
     public void setVersion(String version) {
-        this.version = version;
+        if (version != null) {
+            this.version = version;
+        }
     }
 
     @JsonProperty("version")

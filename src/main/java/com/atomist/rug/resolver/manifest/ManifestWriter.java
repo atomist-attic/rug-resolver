@@ -46,11 +46,6 @@ public class ManifestWriter {
                 sb.append("  generators:");
                 ex.generators().forEach(e -> sb.append(String.format("\n    - \"%s\"", e)));
             }
-            if (ex.reviewers().size() > 0) {
-                sb.append("\n");
-                sb.append("  reviewers:");
-                ex.reviewers().forEach(e -> sb.append(String.format("\n    - \"%s\"", e)));
-            }
             if (ex.commandHandlers().size() > 0) {
                 sb.append("\n");
                 sb.append("  command_handlers:");

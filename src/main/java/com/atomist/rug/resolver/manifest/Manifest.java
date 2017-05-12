@@ -1,11 +1,14 @@
 package com.atomist.rug.resolver.manifest;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
 @JsonInclude(Include.NON_EMPTY)
 public class Manifest extends Gav {
@@ -25,10 +28,14 @@ public class Manifest extends Gav {
 
     @JsonInclude(Include.NON_EMPTY)
     private List<Repository> repositories = new ArrayList<>();
-    private String requires;
+    private String requires = "[1.0.0,)";
     
     @JsonInclude(Include.NON_EMPTY)
     private Excludes excludes;
+    
+    @JsonInclude(Include.NON_EMPTY)
+    @JsonUnwrapped
+    private Map<String, Object> metadata = new HashMap<>();
 
     public Manifest() {
     }
@@ -36,6 +43,10 @@ public class Manifest extends Gav {
     public Manifest(String group, String artifact, String version, String requires) {
         super(group, artifact, version);
         setRequires(requires);
+    }
+    
+    public void addMetadata(String key, Object value) {
+        this.metadata.put(key, value);
     }
 
     public void addDependency(Gav gav) {
@@ -83,6 +94,12 @@ public class Manifest extends Gav {
     @JsonProperty("excludes")
     public Excludes excludes() {
         return excludes;
+    }
+    
+    @JsonProperty
+    @JsonUnwrapped
+    public Map<String, Object> metadata() {
+        return metadata;
     }
 
     public void setBranch(String branch) {

@@ -2,7 +2,9 @@ package com.atomist.rug.resolver.metadata;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
@@ -19,6 +21,7 @@ import com.atomist.rug.resolver.project.GitInfo;
 import com.atomist.source.ArtifactSource;
 import com.atomist.source.FileArtifact;
 import com.atomist.source.StringFileArtifact;
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -157,6 +160,8 @@ public abstract class MetadataWriter {
         @JsonProperty
         private String version;
 
+        private Map<String, Object> metadata = new HashMap<>();
+
         public ArchiveMetadata(Manifest manifest, Rugs rugs, ArtifactDescriptor artifact,
                 GitInfo info) {
 
@@ -180,12 +185,25 @@ public abstract class MetadataWriter {
             this.group = artifact.group();
             this.artifact = artifact.artifact();
             this.version = artifact.version();
-
+            
+            this.metadata.putAll(manifest.metadata());
+            // clean out keywords -> tags
+            if (this.metadata.containsKey("keywords")) {
+                this.metadata.put("tags", this.metadata.get("keywords"));
+                this.metadata.remove("keywords");
+            }
+            
             if (info != null) {
                 this.origin = new Origin(info.repo(), info.branch(), info.sha());
             }
         }
+        
+        @JsonAnyGetter
+        public Map<String, Object> metadata() {
+            return this.metadata;
+        }
     }
+    
 
     private static class CommandHandler {
 
@@ -234,7 +252,7 @@ public abstract class MetadataWriter {
 
         @JsonProperty("root_node")
         private String rootNode;
-        
+
         @JsonProperty
         private Collection<String> secrets;
 

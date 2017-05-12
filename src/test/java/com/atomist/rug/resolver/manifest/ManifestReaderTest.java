@@ -18,7 +18,8 @@ public class ManifestReaderTest {
         ArtifactSource source = new FileSystemArtifactSource(
                 new SimpleFileSystemArtifactSourceIdentifier(
                         new File(".", "src/test/resources/valid-manifest")));
-        Manifest manifest = new ManifestReader().read(source);
+        Manifest manifest = new Manifest();
+        new ManifestReader().read(source, manifest);
         assertEquals("atomist-project-templates", manifest.group());
         assertEquals("spring-rest-service", manifest.artifact());
         assertEquals("3.5.0", manifest.version());

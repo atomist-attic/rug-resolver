@@ -9,11 +9,11 @@ public abstract class ManifestValidator {
     public static Manifest validate(Manifest manifest) {
         if (manifest.group() == null || manifest.group().length() == 0) {
             throw new ManifestParsingException(
-                    "group should not be empty. Please correct group in manifest.yml");
+                    "group should not be empty. Please correct group in manifest.yml or package.json.");
         }
         if (manifest.artifact() == null || manifest.artifact().length() == 0) {
             throw new ManifestParsingException(
-                    "artifact should not be empty. Please correct artifact in manifest.yml");
+                    "artifact should not be empty. Please correct artifact in manifest.yml or package.json.");
         }
         validateVersion(manifest.version(), "version");
         validateVersion(manifest.requires(), "requires");
@@ -23,7 +23,7 @@ public abstract class ManifestValidator {
     private static void validateVersion(String version, String key) {
         if (version == null) {
             throw new ManifestParsingException(
-                    "%s should not be empty. Please correct %s in manifest.yml", key, key);
+                    "%s should not be empty. Please correct %s in manifest.yml or package.json.", key, key);
         }
 
         try {
@@ -32,7 +32,7 @@ public abstract class ManifestValidator {
         }
         catch (InvalidVersionSpecificationException e) {
             throw new ManifestParsingException(
-                    "%s is not a valid version/version range. Please correct %s in manifest.yml",
+                    "%s is not a valid version/version range. Please correct %s in manifest.yml or package.json.",
                     version, key);
         }
     }

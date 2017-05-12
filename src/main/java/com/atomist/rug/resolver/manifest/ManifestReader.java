@@ -18,11 +18,9 @@ import scala.Option;
 class ManifestReader {
 
     @SuppressWarnings("unchecked")
-    public Manifest read(ArtifactSource source) {
+    public void read(ArtifactSource source, Manifest manifest) {
         Option<FileArtifact> manifestFile = source.findFile(".atomist/manifest.yml");
         if (manifestFile.isDefined()) {
-
-            Manifest manifest = new Manifest();
 
             Iterable<Object> documents = readYaml(manifestFile);
 
@@ -54,37 +52,31 @@ class ManifestReader {
                 Map<String, Object> excludes = (Map<String, Object>) manifestYaml
                         .getOrDefault("excludes", Collections.emptyMap());
 
-                Map<String, Map<String, String>> repositories = (Map<String, Map<String, String>>) manifestYaml
-                        .getOrDefault("repositories", Collections.emptyMap());
-
                 if (dependencies != null) {
                     dependencies.forEach(d -> {
                         if (d instanceof String) {
-                            manifest.addDependency(Gav.formString((String) d));
+                            manifest.addDependency(Gav.fromString((String) d));
                         }
                         else if (d instanceof Map) {
                             ((Map<String, String>) d).entrySet()
                                     .forEach(e -> manifest.addDependency(
-                                            Gav.formString(e.getKey() + ":" + e.getValue())));
+                                            Gav.fromString(e.getKey() + ":" + e.getValue())));
                         }
                     });
                 }
                 if (extensions != null) {
                     extensions.forEach(e -> {
                         if (e instanceof String) {
-                            manifest.addExtension(Gav.formString((String) e));
+                            manifest.addExtension(Gav.fromString((String) e));
                         }
                         else if (e instanceof Map) {
                             ((Map<String, String>) e).entrySet()
                                     .forEach(me -> manifest.addExtension(
-                                            Gav.formString(me.getKey() + ":" + me.getValue())));
+                                            Gav.fromString(me.getKey() + ":" + me.getValue())));
                         }
                     });
                 }
-                if (repositories != null) {
-                    repositories.entrySet().forEach(r -> manifest
-                            .addRepository(new Repository(r.getKey(), r.getValue().get("url"))));
-                }
+
                 if (excludes != null && !excludes.isEmpty()) {
                     Excludes ex = new Excludes();
                     excludes.entrySet().forEach(e -> {
@@ -98,9 +90,6 @@ class ManifestReader {
                             break;
                         case "generators":
                             values.forEach(v -> ex.addGenerator(v));
-                            break;
-                        case "reviewers":
-                            values.forEach(v -> ex.addReviewer(v));
                             break;
                         case "command_handlers":
                             values.forEach(v -> ex.addCommandHandler(v));
@@ -126,10 +115,7 @@ class ManifestReader {
                 manifest.setBranch(provenanceInfo.branch());
                 manifest.setSha(provenanceInfo.sha());
             }
-
-            return ManifestValidator.validate(manifest);
         }
-        throw new MissingManifestException("manifest.yml could not be found in .atomist");
     }
 
     private Iterable<Object> readYaml(Option<FileArtifact> manifestFile) {
