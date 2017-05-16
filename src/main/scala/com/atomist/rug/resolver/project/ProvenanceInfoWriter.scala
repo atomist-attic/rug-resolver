@@ -13,6 +13,8 @@ import java.util.Optional
 class ProvenanceInfoWriter {
 
   val ProvenanceFile: String = ".atomist.yml"
+  val GitAttributesFile: String = ".gitattributes"
+  val GitAttributesContent: String = s"$ProvenanceFile linguist-generated=true\n"
   val SecretKeys: Seq[String] = Seq("password", "key", "secret", "token", "user")
 
   def write(projectSource: ArtifactSource, po: ProjectOperation, poa: ParameterValues, client: String, resolver: RugResolver): ArtifactSource = {
@@ -33,7 +35,20 @@ class ProvenanceInfoWriter {
       case None => content
     }
 
-    source.+(StringFileArtifact.apply(ProvenanceFile, updatedContent))
+    val attributesFile = source.findFile(GitAttributesFile)
+    val attributesContent = attributesFile match {
+      case Some(existingContent) => if (existingContent.content.contains(GitAttributesContent)) {
+          existingContent.content
+        }
+        else {
+          existingContent.content + GitAttributesContent
+        }
+      case None => GitAttributesContent
+    }
+    
+    source.
+      +(StringFileArtifact.apply(ProvenanceFile, updatedContent)).
+      +(StringFileArtifact.apply(GitAttributesFile, attributesContent))
   }
 
   // how do we add that a Handler initiated the editor/generator?
