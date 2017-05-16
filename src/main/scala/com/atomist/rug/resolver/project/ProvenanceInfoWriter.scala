@@ -58,7 +58,10 @@ class ProvenanceInfoWriter {
 
     content.append("---\n");
     content.append(s"""kind: "operation"\n""");
-    content.append(s"""client: "$client"\n""");
+    if (po != null) {
+      content.append(s"""client: "${po.getClass.getPackage.getImplementationTitle}"\n""");
+      content.append(s"""version: "${po.getClass.getPackage.getImplementationVersion}"\n""");
+    }
 
     po match {
       case g: ProjectGenerator =>
