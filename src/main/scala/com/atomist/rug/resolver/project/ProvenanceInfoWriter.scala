@@ -109,7 +109,7 @@ class ProvenanceInfoWriter {
 
     if (poa.parameterValues.nonEmpty) {
       content.append(s"""  parameters:\n""")
-      poa.parameterValues.filter(p => !p.getName.startsWith("__")).
+      poa.parameterValues.filter(p => !p.getName.startsWith("__") && !p.getName.equals("handle")).
         foreach(p => content.append(s"""    - "${p.getName}": "${sanitizeValue(p.getName, p.getValue)}"\n"""))
     }
     content.append("\n")
