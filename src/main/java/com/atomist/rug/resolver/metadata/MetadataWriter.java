@@ -7,8 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
-
 import com.atomist.param.MappedParameter;
 import com.atomist.param.Parameter;
 import com.atomist.param.Tag;
@@ -18,6 +16,8 @@ import com.atomist.rug.resolver.manifest.Manifest;
 import com.atomist.rug.resolver.manifest.ManifestFactory;
 import com.atomist.rug.resolver.manifest.ManifestUtils;
 import com.atomist.rug.resolver.project.GitInfo;
+import com.atomist.rug.runtime.RugScopes;
+import com.atomist.rug.runtime.js.JavaScriptCommandHandler;
 import com.atomist.source.ArtifactSource;
 import com.atomist.source.FileArtifact;
 import com.atomist.source.StringFileArtifact;
@@ -34,7 +34,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule;
-
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import scala.collection.JavaConverters;
 
 /**
@@ -43,22 +43,22 @@ import scala.collection.JavaConverters;
 public abstract class MetadataWriter {
 
     public static FileArtifact create(Rugs operationsAndHandlers, ArtifactDescriptor artifact,
-            ArtifactSource source, GitInfo info) {
+                                      ArtifactSource source, GitInfo info) {
         return create(operationsAndHandlers, artifact, source, info, Format.JSON);
     }
 
     public static FileArtifact create(Rugs operationsAndHandlers, ArtifactDescriptor artifact,
-            ArtifactSource source, GitInfo info, Format format) {
+                                      ArtifactSource source, GitInfo info, Format format) {
         return create(operationsAndHandlers, artifact, source, info, format, true);
     }
 
     public static FileArtifact createWithoutExcludes(Rugs operationsAndHandlers,
-            ArtifactDescriptor artifact, ArtifactSource source, GitInfo info) {
+                                                     ArtifactDescriptor artifact, ArtifactSource source, GitInfo info) {
         return create(operationsAndHandlers, artifact, source, info, Format.JSON, false);
     }
 
     private static FileArtifact create(Rugs operationsAndHandlers, ArtifactDescriptor artifact,
-            ArtifactSource source, GitInfo info, Format format, boolean exclude) {
+                                       ArtifactSource source, GitInfo info, Format format, boolean exclude) {
         try {
             Manifest manifest = (exclude ? ManifestFactory.read(source) : new Manifest());
             ArchiveMetadata metadata = new ArchiveMetadata(manifest, operationsAndHandlers,
@@ -122,7 +122,7 @@ public abstract class MetadataWriter {
 
         @Override
         public void serialize(MappedParameter value, JsonGenerator gen,
-                SerializerProvider serializers) throws IOException, JsonProcessingException {
+                              SerializerProvider serializers) throws IOException, JsonProcessingException {
             gen.writeStartObject();
             gen.writeStringField("local_key", value.localKey());
             gen.writeStringField("foreign_key", value.foreignKey());
@@ -137,6 +137,9 @@ public abstract class MetadataWriter {
 
         @JsonProperty("command_handlers")
         private List<CommandHandler> commandHandlers;
+
+        @JsonProperty("integration_tests")
+        private List<CommandHandler> integrationTests;
 
         @JsonProperty
         private List<ProjectOperation> editors;
@@ -163,7 +166,7 @@ public abstract class MetadataWriter {
         private Map<String, Object> metadata = new HashMap<>();
 
         public ArchiveMetadata(Manifest manifest, Rugs rugs, ArtifactDescriptor artifact,
-                GitInfo info) {
+                               GitInfo info) {
 
             // Handlers handlers = operationsAndHandlers.handlers();
             this.editors = JavaConverters.asJavaCollectionConverter(rugs.editors())
@@ -177,33 +180,56 @@ public abstract class MetadataWriter {
                     .map(EventHandler::new).collect(Collectors.toList());
             this.commandHandlers = JavaConverters.asJavaCollectionConverter(rugs.commandHandlers())
                     .asJavaCollection().stream().filter(p -> !ManifestUtils.excluded(p, manifest))
+                    .filter(p -> {
+                        if (p instanceof JavaScriptCommandHandler) {
+                            JavaScriptCommandHandler jsp = (JavaScriptCommandHandler) p;
+                            return jsp.testDescriptor().isEmpty();
+                        }
+                        else {
+                            return true;
+                        }
+                    })
+                    .map(CommandHandler::new).collect(Collectors.toList());
+            this.integrationTests = JavaConverters.asJavaCollectionConverter(rugs.commandHandlers())
+                    .asJavaCollection().stream().filter(p -> !ManifestUtils.excluded(p, manifest))
+                    .filter(p -> {
+                        if (p instanceof JavaScriptCommandHandler) {
+                            JavaScriptCommandHandler jsp = (JavaScriptCommandHandler) p;
+                            return jsp.testDescriptor().nonEmpty();
+                        }
+                        else {
+                            return true;
+                        }
+                    })
                     .map(CommandHandler::new).collect(Collectors.toList());
             this.responseHandlers = JavaConverters
                     .asJavaCollectionConverter(rugs.responseHandlers()).asJavaCollection().stream()
-                    .filter(p -> !ManifestUtils.excluded(p, manifest)).map(ResponseHandler::new)
+                    .filter(p -> !ManifestUtils.excluded(p, manifest))
+                    .filter(p -> p.scope() == RugScopes.DEFAULT$.MODULE$)
+                    .map(ResponseHandler::new)
                     .collect(Collectors.toList());
             this.group = artifact.group();
             this.artifact = artifact.artifact();
             this.version = artifact.version();
-            
+
             this.metadata.putAll(manifest.metadata());
             // clean out keywords -> tags
             if (this.metadata.containsKey("keywords")) {
                 this.metadata.put("tags", this.metadata.get("keywords"));
                 this.metadata.remove("keywords");
             }
-            
+
             if (info != null) {
                 this.origin = new Origin(info.repo(), info.branch(), info.sha());
             }
         }
-        
+
         @JsonAnyGetter
         public Map<String, Object> metadata() {
             return this.metadata;
         }
     }
-    
+
 
     private static class CommandHandler {
 
