@@ -213,11 +213,6 @@ public abstract class MetadataWriter {
             this.version = artifact.version();
 
             this.metadata.putAll(manifest.metadata());
-            // clean out keywords -> tags
-            if (this.metadata.containsKey("keywords")) {
-                this.metadata.put("tags", this.metadata.get("keywords"));
-                this.metadata.remove("keywords");
-            }
 
             if (info != null) {
                 this.origin = new Origin(info.repo(), info.branch(), info.sha());
