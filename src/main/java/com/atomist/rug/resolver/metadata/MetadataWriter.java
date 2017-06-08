@@ -2,6 +2,7 @@ package com.atomist.rug.resolver.metadata;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,26 +44,26 @@ import scala.collection.JavaConverters;
 public abstract class MetadataWriter {
 
     public static FileArtifact create(Rugs operationsAndHandlers, ArtifactDescriptor artifact,
-                                      ArtifactSource source, GitInfo info) {
-        return create(operationsAndHandlers, artifact, source, info, Format.JSON);
+            ArtifactSource source, GitInfo info, String clientId) {
+        return create(operationsAndHandlers, artifact, source, info, clientId, Format.JSON);
     }
 
     public static FileArtifact create(Rugs operationsAndHandlers, ArtifactDescriptor artifact,
-                                      ArtifactSource source, GitInfo info, Format format) {
-        return create(operationsAndHandlers, artifact, source, info, format, true);
+            ArtifactSource source, GitInfo info, String clientId, Format format) {
+        return create(operationsAndHandlers, artifact, source, info, clientId, format, true);
     }
 
     public static FileArtifact createWithoutExcludes(Rugs operationsAndHandlers,
-                                                     ArtifactDescriptor artifact, ArtifactSource source, GitInfo info) {
-        return create(operationsAndHandlers, artifact, source, info, Format.JSON, false);
+            ArtifactDescriptor artifact, ArtifactSource source, GitInfo info, String clientId) {
+        return create(operationsAndHandlers, artifact, source, info, clientId, Format.JSON, false);
     }
 
     private static FileArtifact create(Rugs operationsAndHandlers, ArtifactDescriptor artifact,
-                                       ArtifactSource source, GitInfo info, Format format, boolean exclude) {
+            ArtifactSource source, GitInfo info, String clientId, Format format, boolean exclude) {
         try {
             Manifest manifest = (exclude ? ManifestFactory.read(source) : new Manifest());
             ArchiveMetadata metadata = new ArchiveMetadata(manifest, operationsAndHandlers,
-                    artifact, info);
+                    artifact, info, clientId);
             String metadataJson = objectMapper(format).writeValueAsString(metadata);
             return new StringFileArtifact("metadata.json", ".atomist", metadataJson);
         }
@@ -122,7 +123,7 @@ public abstract class MetadataWriter {
 
         @Override
         public void serialize(MappedParameter value, JsonGenerator gen,
-                              SerializerProvider serializers) throws IOException, JsonProcessingException {
+                SerializerProvider serializers) throws IOException, JsonProcessingException {
             gen.writeStartObject();
             gen.writeStringField("local_key", value.localKey());
             gen.writeStringField("foreign_key", value.foreignKey());
@@ -131,6 +132,15 @@ public abstract class MetadataWriter {
     }
 
     private static class ArchiveMetadata {
+
+        @JsonProperty("published_by")
+        private String user = System.getProperty("user.name");
+        
+        @JsonProperty("published_with")
+        private String clientId;
+        
+        @JsonProperty("published_at")
+        private Date timestamp = new Date();
 
         @JsonProperty
         private String artifact;
@@ -166,7 +176,7 @@ public abstract class MetadataWriter {
         private Map<String, Object> metadata = new HashMap<>();
 
         public ArchiveMetadata(Manifest manifest, Rugs rugs, ArtifactDescriptor artifact,
-                               GitInfo info) {
+                GitInfo info, String clientId) {
 
             // Handlers handlers = operationsAndHandlers.handlers();
             this.editors = JavaConverters.asJavaCollectionConverter(rugs.editors())
@@ -188,8 +198,7 @@ public abstract class MetadataWriter {
                         else {
                             return true;
                         }
-                    })
-                    .map(CommandHandler::new).collect(Collectors.toList());
+                    }).map(CommandHandler::new).collect(Collectors.toList());
             this.integrationTests = JavaConverters.asJavaCollectionConverter(rugs.commandHandlers())
                     .asJavaCollection().stream().filter(p -> !ManifestUtils.excluded(p, manifest))
                     .filter(p -> {
@@ -200,13 +209,11 @@ public abstract class MetadataWriter {
                         else {
                             return true;
                         }
-                    })
-                    .map(CommandHandler::new).collect(Collectors.toList());
+                    }).map(CommandHandler::new).collect(Collectors.toList());
             this.responseHandlers = JavaConverters
                     .asJavaCollectionConverter(rugs.responseHandlers()).asJavaCollection().stream()
                     .filter(p -> !ManifestUtils.excluded(p, manifest))
-                    .filter(p -> p.scope() == RugScopes.DEFAULT$.MODULE$)
-                    .map(ResponseHandler::new)
+                    .filter(p -> p.scope() == RugScopes.DEFAULT$.MODULE$).map(ResponseHandler::new)
                     .collect(Collectors.toList());
             this.group = artifact.group();
             this.artifact = artifact.artifact();
@@ -217,6 +224,8 @@ public abstract class MetadataWriter {
             if (info != null) {
                 this.origin = new Origin(info.repo(), info.branch(), info.sha());
             }
+            
+            this.clientId = clientId;
         }
 
         @JsonAnyGetter
@@ -224,7 +233,6 @@ public abstract class MetadataWriter {
             return this.metadata;
         }
     }
-
 
     private static class CommandHandler {
 

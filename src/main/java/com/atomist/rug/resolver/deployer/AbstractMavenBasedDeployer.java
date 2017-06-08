@@ -49,7 +49,7 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
 
     @Override
     public void deploy(Rugs operationsAndHandlers, ArtifactSource source,
-            ArtifactDescriptor artifact, File root) throws IOException {
+            ArtifactDescriptor artifact, File root, String clientId) throws IOException {
 
         String zipFileName = artifact.artifact() + "-" + artifact.version() + "."
                 + artifact.extension().toString().toLowerCase();
@@ -59,7 +59,7 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
         manifest.setGroup(artifact.group());
         manifest.setArtifact(artifact.artifact());
         manifest.setVersion(artifact.version());
-        source = generateMetadata(operationsAndHandlers, artifact, source, manifest);
+        source = generateMetadata(operationsAndHandlers, artifact, source, manifest, clientId);
 
         writeArtifactSourceToZip(archive, source);
         File pomFile = writePom(manifest, artifact, root);
@@ -111,9 +111,9 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
     }
 
     private ArtifactSource writeMetadata(Rugs operationsAndHandlers, ArtifactDescriptor artifact,
-            ArtifactSource source, GitInfo info) {
+            ArtifactSource source, GitInfo info, String clientId) {
         FileArtifact metadataFile = MetadataWriter.create(operationsAndHandlers, artifact, source,
-                info);
+                info, clientId);
 
         ArtifactSource result = source.plus(metadataFile);
         listener.metadataFileGenerated(metadataFile);
@@ -200,12 +200,12 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
             Artifact pom, Artifact metadata);
 
     protected ArtifactSource generateMetadata(Rugs operationsAndHandlers,
-            ArtifactDescriptor artifact, ArtifactSource source, Manifest manifest) {
+            ArtifactDescriptor artifact, ArtifactSource source, Manifest manifest, String clientId) {
         listener.metadataGenerationStarted();
         source = writePomAndManifest(artifact, source, manifest);
         GitInfo info = getGitInfo();
         source = writeProvenanceInfo(info, source);
-        source = writeMetadata(operationsAndHandlers, artifact, source, info);
+        source = writeMetadata(operationsAndHandlers, artifact, source, info, clientId);
         listener.metadataGenerationFinished();
         return source;
     }

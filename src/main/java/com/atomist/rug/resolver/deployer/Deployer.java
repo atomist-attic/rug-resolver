@@ -10,7 +10,7 @@ import com.atomist.source.ArtifactSource;
 public interface Deployer {
 
     void deploy(Rugs operationsAndHandlers, ArtifactSource source, ArtifactDescriptor artifact,
-            File root) throws IOException;
+            File root, String clientId) throws IOException;
 
     void registerEventListener(DeployerEventListener listener);
 
