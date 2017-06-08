@@ -82,7 +82,7 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
 
     @Override
     public void registerEventListener(DeployerEventListener listener) {
-        Assert.notNull(listener);
+        Assert.notNull(listener, "listener should not be null");
         this.listener = listener;
     }
 
@@ -100,7 +100,7 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
         return session;
     }
 
-    private void writeArtifactSourceToZip(File zipFile, ArtifactSource source)
+    protected void writeArtifactSourceToZip(File zipFile, ArtifactSource source)
             throws FileNotFoundException {
         if (!zipFile.getParentFile().exists()) {
             zipFile.getParentFile().mkdirs();
