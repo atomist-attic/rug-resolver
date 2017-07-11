@@ -165,14 +165,14 @@ public abstract class AbstractMavenBasedDeployer implements Deployer {
         String manifestContents = new ManifestWriter().write(manifest);
         String manifestPomContents = new ManifestPomWriter().write(manifest, artifact);
 
-        FileArtifact pomArtifact = new StringFileArtifact("pom.xml",
+        FileArtifact pomArtifact = StringFileArtifact.apply("pom.xml",
                 "META-INF/maven/" + artifact.group() + "/" + artifact.artifact(),
                 manifestPomContents);
         source = source.plus(pomArtifact);
 
         listener.metadataFileGenerated(pomArtifact);
 
-        FileArtifact manifestArtifact = new StringFileArtifact("manifest.yml", ".atomist",
+        FileArtifact manifestArtifact = StringFileArtifact.apply("manifest.yml", ".atomist",
                 manifestContents);
         ArtifactSource result = source.edit(new FileEditor() {
             @Override

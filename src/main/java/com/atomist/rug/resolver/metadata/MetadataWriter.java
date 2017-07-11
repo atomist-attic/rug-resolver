@@ -65,7 +65,7 @@ public abstract class MetadataWriter {
             ArchiveMetadata metadata = new ArchiveMetadata(manifest, operationsAndHandlers,
                     artifact, info, clientId);
             String metadataJson = objectMapper(format).writeValueAsString(metadata);
-            return new StringFileArtifact("metadata.json", ".atomist", metadataJson);
+            return StringFileArtifact.apply("metadata.json", ".atomist", metadataJson);
         }
         catch (JsonProcessingException e) {
             // TODO throw exception

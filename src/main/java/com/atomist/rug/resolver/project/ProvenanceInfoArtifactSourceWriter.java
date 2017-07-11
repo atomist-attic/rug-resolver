@@ -27,7 +27,7 @@ public abstract class ProvenanceInfoArtifactSourceWriter {
         sb.append("repo: \"").append(provenanceInfo.repo()).append("\"\n");
         sb.append("branch: \"").append(provenanceInfo.branch()).append("\"\n");
         sb.append("sha: \"").append(provenanceInfo.sha()).append("\"\n");
-        FileArtifact newManifest = new StringFileArtifact("manifest.yml", ".atomist",
+        FileArtifact newManifest = StringFileArtifact.apply("manifest.yml", ".atomist",
                 sb.toString());
 
         return source.edit(new FileEditor() {
