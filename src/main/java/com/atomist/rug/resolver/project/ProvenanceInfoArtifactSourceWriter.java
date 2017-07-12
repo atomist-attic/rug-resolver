@@ -14,33 +14,40 @@ public abstract class ProvenanceInfoArtifactSourceWriter {
             return source;
         }
 
+        String provenance = writeProvenanceInfoToManifest(provenanceInfo, source);
+
         Option<FileArtifact> manifestArtifact = source.findFile(".atomist/manifest.yml");
         if (manifestArtifact.isDefined()) {
-            return writeProvenanceInfoToManifest(provenanceInfo, source, manifestArtifact);
+            StringBuilder sb = new StringBuilder(manifestArtifact.get().content());
+            FileArtifact newManifest = StringFileArtifact.apply("manifest.yml", ".atomist",
+                    sb.append(provenance).toString());
+
+            return source.edit(new FileEditor() {
+                @Override
+                public boolean canAffect(FileArtifact f) {
+                    return f.path().equals(newManifest.path());
+                }
+
+                @Override
+                public FileArtifact edit(FileArtifact f) {
+                    return newManifest;
+                }
+            });
+        } 
+        else {
+            FileArtifact newManifest = StringFileArtifact.apply("manifest.yml", ".atomist",
+                    provenance);
+            return source.plus(newManifest);
         }
-        return source;
     }
 
-    private static ArtifactSource writeProvenanceInfoToManifest(GitInfo provenanceInfo,
-            ArtifactSource source, Option<FileArtifact> manifestArtifact) {
-        StringBuilder sb = new StringBuilder(manifestArtifact.get().content()).append("\n---\n");
+    private static String writeProvenanceInfoToManifest(GitInfo provenanceInfo,
+            ArtifactSource source) {
+        StringBuilder sb = new StringBuilder().append("\n---\n");
         sb.append("repo: \"").append(provenanceInfo.repo()).append("\"\n");
         sb.append("branch: \"").append(provenanceInfo.branch()).append("\"\n");
         sb.append("sha: \"").append(provenanceInfo.sha()).append("\"\n");
-        FileArtifact newManifest = StringFileArtifact.apply("manifest.yml", ".atomist",
-                sb.toString());
-
-        return source.edit(new FileEditor() {
-            @Override
-            public boolean canAffect(FileArtifact f) {
-                return f.path().equals(newManifest.path());
-            }
-
-            @Override
-            public FileArtifact edit(FileArtifact f) {
-                return newManifest;
-            }
-        });
+        return sb.toString();
     }
 
 }
