@@ -1,7 +1,6 @@
 # Atomist 'rug-resolver'
 
 [![Build Status](https://travis-ci.org/atomist/rug-resolver.svg?branch=master)](https://travis-ci.org/atomist/rug-resolver)
-[![Slack Status](https://join.atomist.com/badge.svg)](https://join.atomist.com/)
 
 Resolver library used to resolve Rug Operations and Archives.
 
